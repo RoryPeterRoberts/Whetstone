@@ -30,6 +30,29 @@ Replace the ad-hoc refine buttons (simpler / technical / + context) everywhere �
 **High Orbit** (one line — capability + why) → **Low Orbit** (the shape, no code) → **Helicopter** (how it works, conceptually) → **Close-up** (the builder's approach, bridging toward code) → **Microscope** (the actual code / diff).
 Microscope is the escape hatch that resolves "command altitude, never code": code isn't forbidden, it's the deepest zoom — shown only when the user chooses to descend. **BUILT** — 5 teacher acts + the dial replaces simpler/technical/context; verified the range (high orbit = one sentence; microscope = the actual code/diff). The dial acts on the last teacher answer, so it covers lessons, bank dig-in, and review dig-in without per-card buttons.
 
+## Built 2026-07-08: source-grounding (gap #5) — SHIPPED + merged to main
+Whetstone's own #1 finding about itself: a finding must cite the REAL frontier item behind it or say "unverified" — never a fabricated citation (the self-test caught a lesson citing two invented arxiv papers; this closes that failure mode structurally).
+
+**What shipped** (branch `source-grounding`, merge `a284a3c`, pushed):
+- `filter.py`: frontier items get IDs `F1..Fn` (`_index`/`frontier_index`); the judge PROMPT must cite `source_ids` and is forbidden to invent them; `ground(gaps, id_map)` **strips any citation not in the live feed and marks each gap grounded/unverified** — enforced in code, so the guarantee doesn't rest on the LLM obeying the prompt (defense in depth).
+- `teach.py`: the teacher injects real sources into the lesson prompt, is told never to invent citations, and banks `grounded` + `sources` with each command.
+- `teacher.html`: bank cards show a grounded-source / unverified line.
+- `test_grounding.py`: 12 unit tests.
+
+**How it was built:** subagent-driven loop — a fresh implementer per task + an independent reviewer per task (spec + quality) + an opus whole-branch review. Reviews caught real issues (a non-dict frontier-line crash; an untested provenance passthrough) and fixed them before merge.
+
+**Live proof (E2E on Whetstone itself):** `watch` → 60 frontier items; `learn` → 6 gaps, **fabrication guard PASS** (every `source_id` ∈ F1..F60), 4 grounded / 2 unverified; grounded lessons cite real articles (Latent Space, Raschka) instead of fake arxiv links.
+
+**NEXT — harden the judge under grounding.** `whet check` jitters 0–1 must-catch failures across runs (the golden traps type-hints / f-strings / structured-output-done-right tip over on different runs). It's LLM non-determinism on a judge sitting on the calibration line — NOT a grounding regression (detection logic unchanged; one run was clean). The frontier-injection likely primes mild over-flagging. Re-calibrate the rubric (and/or add explicit "already-best-practice" anchors) so benign practice reliably reads `no-gap` even with the 60-item frontier in the prompt, then re-verify `whet check` = 0 must-catch stably.
+
+## Built 2026-07-08: Filter v2 — canonical names + judge calibration (the source-grounding "NEXT", done)
+Closes the two ◑ Partial goals from the source-grounding assessment (and the two the external GPT-5.5 reviews flagged).
+- **Recurrence fires:** `canon.py` maps free-text breadcrumb pattern names to stable canonical ids (seeded in `canon.jsonl`, grown as new patterns appear, cached in `canon_map.jsonl`); `filter.select()` counts "recurs across N repos" by canonical id, so the same habit under different names now accumulates.
+- **Judge hardened:** the judge PROMPT gains not-a-gap anchors + a rule that a gap must name what the practice *lacks* (not merely that a topic is trending); `judge_eval` runs the golden set **worst-of-N** (default 3) so "calibrated" means reliably, not once.
+- **How:** subagent-driven loop (4 tasks, TDD, 23 unit tests), per-task + opus whole-branch review. Merged to main.
+- **Live proof:** `whet check` worst-of-3 = **12/12, 0 must-catch** — every previously-jittering trap (type-hints, f-strings, structured-output-done-right) now holds. (Pre-fix it jittered 10–11/12, 0–1 must-catch.)
+- **Watch-item:** canon keying is exact-match; under model echo-drift a habit could fork to a slug id (defeating recurrence for that pattern). Low-probability; harden by normalising the lookup + slugifying proposed ids if real usage shows it.
+
 ## Components & status
 
 | Piece | What it does | Status |
@@ -38,8 +61,8 @@ Microscope is the escape hatch that resolves "command altitude, never code": cod
 | `whetstone/SOURCES.md` | Curated, watchable AI source list (frontier / papers / benchmarks / local) | **built** (adopted) |
 | `whetstone/breadcrumbs.py` | Reads git history → infers LLM-building patterns you used → `breadcrumbs.jsonl` | **built** |
 | `whetstone/watch.py` | Scans SOURCES via RSS → `frontier.jsonl` (10 feeds live; page-diff via web-change-detector later) | **built** |
-| `whetstone/filter.py` | breadcrumbs × frontier → the recurring gap → the teaching target | to build |
-| `whetstone/whet.py` (CLI) | Glue: `whet learn <repo>` runs the loop end to end | to build |
+| `whetstone/filter.py` | breadcrumbs × frontier → the recurring gap → the teaching target | **built** (+ source-grounding) |
+| `whetstone/whet.py` (CLI) | Glue: `whet learn <repo>` runs the loop end to end | **built** (learn / watch / check) |
 
 ## Build order
 
