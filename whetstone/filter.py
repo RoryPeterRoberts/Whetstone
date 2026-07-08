@@ -85,7 +85,9 @@ def frontier_index(cap=45):
     items = []
     if FRONTIER.exists():
         for ln in FRONTIER.read_text().splitlines()[:cap]:
-            try: items.append(json.loads(ln))
+            try:
+                r = json.loads(ln)
+                if isinstance(r, dict): items.append(r)
             except Exception: pass
     if not items:
         return ("(no live frontier feed yet — using your own recent knowledge)", {})
