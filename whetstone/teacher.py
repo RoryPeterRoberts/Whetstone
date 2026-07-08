@@ -19,6 +19,7 @@ LOG      = ROOT / "interactions.jsonl"
 WALLS    = ROOT / "walls.jsonl"
 LEARNED  = ROOT / "LEARNED.md"
 BANK     = ROOT / "bank.jsonl"
+REVIEWS  = ROOT / "reviews.jsonl"
 PORT     = 8099
 CODEX    = os.environ.get("CODEX_BIN") or shutil.which("codex") or os.path.expanduser("~/.local/bin/codex")
 TAG_RE   = re.compile(r"<<\s*(spine|adventure)[^>]*>>\s*$", re.I)
@@ -186,6 +187,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 if d and d not in seen:
                     seen.add(d); items.append(r)
             self._send(200, json.dumps(items))
+        elif self.path == "/reviews":
+            seen, items = set(), []
+            for r in reversed(read_jsonl(REVIEWS)):
+                k = (r.get("repo", ""), r.get("title", ""))
+                if k not in seen:
+                    seen.add(k); items.append(r)
+            self._send(200, json.dumps(items))
         elif self.path == "/learn_status":
             self._send(200, json.dumps(LEARN))
         else:
@@ -238,6 +246,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 existing = {(r.get("direction") or "").strip() for r in read_jsonl(BANK)}
                 if d not in existing:
                     append_jsonl(BANK, {"ts": int(time.time()), "concept": req.get("concept", ""), "direction": d})
+            self._send(200, json.dumps({"ok": True}))
+
+        elif self.path == "/review":
+            entry = {"ts": int(time.time()), "repo": req.get("repo", ""), "title": req.get("title", ""),
+                     "what": req.get("what", ""), "why": req.get("why", ""), "tell": req.get("tell", ""),
+                     "files": req.get("files", ""), "direction": req.get("direction", "")}
+            if entry["title"] or entry["what"]:
+                append_jsonl(REVIEWS, entry)
             self._send(200, json.dumps({"ok": True}))
 
         elif self.path == "/profile":

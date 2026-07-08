@@ -14,7 +14,7 @@ That's the whole value prop, thin — enough to demo end to end.
 
 Still deferred: canonical pattern names (so recurrence fires), OpenBrain write-back, page-diff leaderboards, de-personalise for public.
 
-## Next step (banked 2026-07-08): /whetstone as a Claude Code skill
+## Built 2026-07-08: /whetstone as a Claude Code skill (+ review mode)
 Instead of (or alongside) a standalone bundle, ship Whetstone as a Claude Code skill: `/whetstone [repo]`, default = the current repo.
 
 **Why this is the right form — it makes the safety structural.** The process we ran by hand this session — Whetstone surfaces a gap + direction, the agent WITH FULL REPO CONTEXT reviews whether it is a genuine enhancement for THIS code, agrees or refuses with reasons, plans, and implements only on approval — becomes the skill's *defined workflow*, not a hopeful line inside a pasted prompt. A user cannot strip the gate and an agent cannot be handed a raw command it disagrees with or that would damage the repo; the evaluate-first step is guaranteed by the skill, not merely suggested.
@@ -22,6 +22,13 @@ Instead of (or alongside) a standalone bundle, ship Whetstone as a Claude Code s
 **Bonus:** it sidesteps the bundle / launcher / API-key questions — Claude Code is the runtime, its model is already present, the current repo is the default target, and the agent that evaluates the fix is the one that implements it.
 
 **Open design question (decide at build):** keep the gap-finder/teacher on Codex so the finder is a DIFFERENT model than the implementer (independent judgment = a safety plus), or go fully native on Claude's own model (simpler, no external dependency).
+
+**STATUS — built 2026-07-08.** Live at `~/.claude/skills/whetstone/SKILL.md` (source in `skill/whetstone/`). Open question resolved: **Codex stays the finder** (finder ≠ implementer = independent judgment). Also added the `/whetstone review` mode: after changes land, the agent writes a command-altitude review (title / what / why / tell, no code) and POSTs it to the teacher `/review` endpoint; the UI shows them in a "what was built" drawer, grouped by repo, with dig-in. To use the new bits: restart `teacher.py` (new `/review` + `/reviews` endpoints) and start a fresh Claude Code session (skills load at session start).
+
+## Next: altitude dial (Rory's idea, 2026-07-08)
+Replace the ad-hoc refine buttons (simpler / technical / + context) everywhere — lessons, bank, reviews — with ONE altitude dial the user controls:
+**High Orbit** (one line — capability + why) → **Low Orbit** (the shape, no code) → **Helicopter** (how it works, conceptually) → **Close-up** (the builder's approach, bridging toward code) → **Microscope** (the actual code / diff).
+Microscope is the escape hatch that resolves "command altitude, never code": code isn't forbidden, it's the deepest zoom — shown only when the user chooses to descend. Build = ~5 teacher acts (one per altitude) + swap the button row for the dial; applies to teacher messages, bank cards, and review cards.
 
 ## Components & status
 

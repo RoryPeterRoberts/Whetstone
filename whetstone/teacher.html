@@ -91,6 +91,9 @@ header{border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:20p
 .learnbar button{background:var(--brass);color:#1a1206;border:none;border-radius:6px;padding:7px 14px;font-family:var(--mono);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
 .learnbar button:disabled{opacity:.5;cursor:default}
 .learnbar #learnprog{font-family:var(--mono);font-size:11px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40%}
+.bk .rv{font-family:var(--mono);font-size:11.5px;color:var(--brass-hi);line-height:1.55;margin:3px 0}
+.bk .rv b{color:var(--brass);font-weight:600;font-size:9px;text-transform:uppercase;letter-spacing:.06em;margin-right:6px}
+.bk .rvf{font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:6px}
 .say{display:flex;gap:8px}
 .say input{flex:1;background:var(--surface);border:1px solid var(--line2);border-radius:6px;padding:12px 14px;color:var(--paper);font-family:var(--serif);font-size:15px}
 .say input:focus{outline:none;border-color:var(--brass)}
@@ -101,7 +104,7 @@ header{border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:20p
 <body>
 <div class="wrap">
   <header>
-    <div class="brand">The teacher<span class="sub">codex · local · dynamic</span><button class="bankbtn" id="bankbtn">⎘ command bank</button></div>
+    <div class="brand">The teacher<span class="sub">codex · local · dynamic</span><button class="bankbtn" id="bankbtn">⎘ command bank</button><button class="bankbtn" id="reviewsbtn">◱ what was built</button></div>
     <div class="learnbar"><input id="repopath" placeholder="/path/to/a/git/repo — e.g. ~/JOBS/Whetstone" spellcheck="false"><button id="learnbtn">Learn this repo</button><span id="learnprog"></span></div>
     <div class="road" id="road"></div>
   </header>
@@ -121,7 +124,7 @@ header{border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:20p
     <button id="send">Ask</button>
   </div>
 </div></div>
-<div class="drawer" id="drawer"><h3>Command bank<button class="x" id="drawerx">×</button></h3><div class="list" id="banklist"></div></div>
+<div class="drawer" id="drawer"><h3><span id="drawertitle">Command bank</span><button class="x" id="drawerx">×</button></h3><div class="list" id="banklist"></div></div>
 <script>
 const SUGGEST=["constrained decoding","give a local model tools","run a model on your 5090","RAG on your own docs","LoRA fine-tune","speculative decoding"];
 const thread=document.getElementById('thread'), sayIn=document.getElementById('say'), sendBtn=document.getElementById('send'), tool=document.getElementById('seltool');
@@ -267,6 +270,7 @@ function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replac
 let BANKITEMS={};
 async function openBank(){
   const list=document.getElementById('banklist');
+  document.getElementById('drawertitle').textContent='Command bank';
   list.innerHTML='<div class="empty">loading…</div>';drawer.classList.add('open');
   try{const items=await (await fetch('/bank')).json();
     if(!items.length){list.innerHTML='<div class="empty">no commands yet — they collect here as you learn.</div>';return;}
@@ -314,6 +318,33 @@ async function poll(){
 }
 document.getElementById('learnbtn').onclick=learn;
 document.getElementById('repopath').addEventListener('keydown',e=>{if(e.key==='Enter')learn();});
+let REVIEWITEMS={};
+async function openReviews(){
+  const list=document.getElementById('banklist');
+  document.getElementById('drawertitle').textContent='What was built';
+  list.innerHTML='<div class="empty">loading…</div>';drawer.classList.add('open');
+  try{const items=await (await fetch('/reviews')).json();
+    if(!items.length){list.innerHTML='<div class="empty">nothing yet — run /whetstone review after a change lands.</div>';return;}
+    const groups={}; items.forEach(it=>{const p=it.repo||'general';(groups[p]=groups[p]||[]).push(it);});
+    REVIEWITEMS={}; let html='';
+    Object.keys(groups).sort().forEach(proj=>{
+      html+='<div class="grp">'+esc(proj)+'</div>';
+      groups[proj].forEach((it,i)=>{const id=proj+'#'+i;REVIEWITEMS[id]=it;
+        html+='<div class="bk"><div class="bk-h"><span class="c">'+esc(it.title||'change')+'</span></div>'
+          +'<div class="rv"><b>What</b> '+esc(it.what||'')+'</div>'
+          +(it.why?'<div class="rv"><b>Why</b> '+esc(it.why)+'</div>':'')
+          +(it.tell?'<div class="rv"><b>Tell</b> '+esc(it.tell)+'</div>':'')
+          +(it.files?'<div class="rvf">'+esc(it.files)+'</div>':'')
+          +'<div class="bk-b"><button class="rex" data-id="'+id+'">dig in</button></div></div>';
+      });
+    });
+    list.innerHTML=html;
+    list.querySelectorAll('.rex').forEach(b=>b.onclick=()=>explainReview(REVIEWITEMS[b.dataset.id]));
+  }catch(e){list.innerHTML='<div class="empty">(could not load)</div>';}
+}
+function explainReview(it){if(!it)return;drawer.classList.remove('open');
+  send({action:'explain',selection:(it.what||it.title||''),question:'this was just implemented in '+(it.repo||'the repo')+' (why: '+(it.why||'')+'). Explain at command altitude what it means for me as the person directing the work, and the tell to know it is working. No code.'},'what was built: '+(it.title||''),false);}
+document.getElementById('reviewsbtn').onclick=openReviews;
 sendBtn.onclick=()=>{const v=sayIn.value;sayIn.value='';(mode==='wall'?logWall:say)(v);};
 sayIn.onkeydown=e=>{if(e.key==='Enter'){const v=sayIn.value;sayIn.value='';(mode==='wall'?logWall:say)(v);}};
 draw();drawRoad();
