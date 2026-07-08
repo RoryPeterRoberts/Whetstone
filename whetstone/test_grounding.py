@@ -32,6 +32,12 @@ class TestIndex(unittest.TestCase):
             flt.FRONTIER = orig
 
 
+class TestPrompt(unittest.TestCase):
+    def test_prompt_requires_source_ids(self):
+        self.assertIn("source_ids", flt.PROMPT)
+        self.assertIn("NEVER invent", flt.PROMPT)
+
+
 class TestGround(unittest.TestCase):
     def setUp(self):
         self.id_map = {"F1": {"source": "A", "title": "t1", "link": "u1"}}

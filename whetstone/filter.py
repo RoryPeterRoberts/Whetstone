@@ -39,10 +39,11 @@ Rules:
 a technique to DIRECT and JUDGE, not code to hand-write.
 - Rank gaps by leverage: how much it would actually improve their work. Patterns marked "recurs across N of your repos" are higher-leverage — a fix there compounds across projects.
 - Tag each gap's blast radius in "risk": "money" (can cost, charge, or lose money), "data" (can corrupt or lose data), "production" (can break a live system), or "quality" (just better output). Pick the highest that genuinely applies.
+- Cite the frontier item ID(s) that justify each gap in "source_ids" (e.g. ["F3"]). If the gap comes from your own general knowledge and NO listed frontier item supports it, set "source_ids" to []. NEVER invent an ID that is not listed above.
 
 Return ONLY a JSON array, no prose, no fences. One item per pattern:
 {{"pattern": "<their pattern>", "gap": true|false, "current_move": "<the sharper move, short>", \
-"why": "<one concrete line on why it beats what they do>", "confidence": "high|med|low", "risk": "money|data|production|quality"}}"""
+"why": "<one concrete line on why it beats what they do>", "confidence": "high|med|low", "risk": "money|data|production|quality", "source_ids": ["<frontier ids like F3, or [] if none>"]}}"""
 
 
 def call_codex(prompt):
