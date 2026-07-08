@@ -70,3 +70,26 @@ class TestPromptV2(unittest.TestCase):
     def test_prompt_still_formats(self):
         # the added rules must not break the .format() placeholders
         flt.PROMPT.format(patterns="p", frontier="f")
+
+
+class TestWorstOfN(unittest.TestCase):
+    @mock.patch("judge_eval.flt.judge")
+    @mock.patch("judge_eval.load_golden")
+    def test_any_run_must_fail_flags_not_calibrated(self, lg, jm):
+        import judge_eval
+        lg.return_value = [{"pattern": "P", "evidence": "", "expect": False, "must": True}]
+        # 3 runs: clean, clean, then a must-case over-flag
+        jm.side_effect = [
+            [{"pattern": "P", "gap": False}],
+            [{"pattern": "P", "gap": False}],
+            [{"pattern": "P", "gap": True}],
+        ]
+        self.assertEqual(judge_eval.run(3), 1)   # worst-of-3 catches the failing run
+
+    @mock.patch("judge_eval.flt.judge")
+    @mock.patch("judge_eval.load_golden")
+    def test_all_runs_clean_passes(self, lg, jm):
+        import judge_eval
+        lg.return_value = [{"pattern": "P", "evidence": "", "expect": False, "must": True}]
+        jm.side_effect = [[{"pattern": "P", "gap": False}]] * 3
+        self.assertEqual(judge_eval.run(3), 0)
