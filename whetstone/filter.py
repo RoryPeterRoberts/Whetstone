@@ -70,16 +70,30 @@ def parse_json(s):
     return []
 
 
+def _index(items):
+    """Pure: list of frontier item dicts -> (digest with F-ids, id_map)."""
+    digest, id_map = [], {}
+    for i, it in enumerate(items, 1):
+        fid = f"F{i}"
+        id_map[fid] = {"source": it.get("source", ""), "title": it.get("title", ""), "link": it.get("link", "")}
+        digest.append(f"{fid}  [{it.get('source', '')}] {it.get('title', '')}")
+    return ("\n".join(digest) or "(empty)", id_map)
+
+
+def frontier_index(cap=45):
+    """Read frontier.jsonl (up to cap) -> (digest, id_map)."""
+    items = []
+    if FRONTIER.exists():
+        for ln in FRONTIER.read_text().splitlines()[:cap]:
+            try: items.append(json.loads(ln))
+            except Exception: pass
+    if not items:
+        return ("(no live frontier feed yet — using your own recent knowledge)", {})
+    return _index(items)
+
+
 def load_frontier(cap=45):
-    if not FRONTIER.exists():
-        return "(no live frontier feed yet — using your own recent knowledge)"
-    lines = []
-    for ln in FRONTIER.read_text().splitlines()[:cap]:
-        try:
-            r = json.loads(ln); lines.append(f"- [{r.get('source')}] {r.get('title')}")
-        except Exception:
-            pass
-    return "\n".join(lines) or "(empty)"
+    return frontier_index(cap)[0]
 
 
 def load_breadcrumbs():
