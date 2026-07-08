@@ -25,10 +25,10 @@ Instead of (or alongside) a standalone bundle, ship Whetstone as a Claude Code s
 
 **STATUS — built 2026-07-08.** Live at `~/.claude/skills/whetstone/SKILL.md` (source in `skill/whetstone/`). Open question resolved: **Codex stays the finder** (finder ≠ implementer = independent judgment). Also added the `/whetstone review` mode: after changes land, the agent writes a command-altitude review (title / what / why / tell, no code) and POSTs it to the teacher `/review` endpoint; the UI shows them in a "what was built" drawer, grouped by repo, with dig-in. To use the new bits: restart `teacher.py` (new `/review` + `/reviews` endpoints) and start a fresh Claude Code session (skills load at session start).
 
-## Next: altitude dial (Rory's idea, 2026-07-08)
+## Built 2026-07-08: altitude dial (Rory's idea)
 Replace the ad-hoc refine buttons (simpler / technical / + context) everywhere — lessons, bank, reviews — with ONE altitude dial the user controls:
 **High Orbit** (one line — capability + why) → **Low Orbit** (the shape, no code) → **Helicopter** (how it works, conceptually) → **Close-up** (the builder's approach, bridging toward code) → **Microscope** (the actual code / diff).
-Microscope is the escape hatch that resolves "command altitude, never code": code isn't forbidden, it's the deepest zoom — shown only when the user chooses to descend. Build = ~5 teacher acts (one per altitude) + swap the button row for the dial; applies to teacher messages, bank cards, and review cards.
+Microscope is the escape hatch that resolves "command altitude, never code": code isn't forbidden, it's the deepest zoom — shown only when the user chooses to descend. **BUILT** — 5 teacher acts + the dial replaces simpler/technical/context; verified the range (high orbit = one sentence; microscope = the actual code/diff). The dial acts on the last teacher answer, so it covers lessons, bank dig-in, and review dig-in without per-card buttons.
 
 ## Components & status
 

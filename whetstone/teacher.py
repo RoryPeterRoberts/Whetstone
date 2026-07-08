@@ -105,6 +105,11 @@ def build_prompt(req):
         "explain":    f'Explain this banked command so Rory can trust and use it: "{selection}". Context: {question}. Give the LOGIC as a short chain — from a fact about his code, step by step, to why this is the right move, each step checkable — then one line on when to reach for it. Plain, command-altitude, no code.',
         "technical":  f'Rory wants "{selection}" MORE TECHNICAL — the mechanism underneath, still command-altitude (direct and judge, not code to hand-write). <90 words.',
         "context":    f'Rory wants MORE CONTEXT around "{selection}": where it comes from, why it matters, and the provenance/logic chain that makes it trustworthy. <110 words.',
+        "high_orbit": f'Re-explain "{selection}" at HIGH ORBIT: ONE sentence — the capability and why it matters to him. Nothing else, no code.',
+        "low_orbit":  f'Re-explain "{selection}" at LOW ORBIT: the shape of it in plain English — what it does and the core idea. No code. <40 words.',
+        "helicopter": f'Re-explain "{selection}" at HELICOPTER: how it works — the moving parts and how they fit, conceptually. No code. <90 words.',
+        "closeup":    f'Re-explain "{selection}" at CLOSE-UP: the approach a builder would take — the technique and key decisions, bridging toward code but not full code. <110 words.',
+        "microscope": f'Re-explain "{selection}" at MICROSCOPE: show the ACTUAL code/diff for this, concretely. This is the one altitude where code IS the answer — show it, briefly labelled.',
     }
     act_line = acts.get(action, "") if (action and selection) else ""
 

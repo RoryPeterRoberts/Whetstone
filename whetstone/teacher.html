@@ -94,6 +94,9 @@ header{border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:20p
 .bk .rv{font-family:var(--mono);font-size:11.5px;color:var(--brass-hi);line-height:1.55;margin:3px 0}
 .bk .rv b{color:var(--brass);font-weight:600;font-size:9px;text-transform:uppercase;letter-spacing:.06em;margin-right:6px}
 .bk .rvf{font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:6px}
+.tip .tools{flex-wrap:wrap}
+.tip .tools [data-alt]{font-size:10px;opacity:.88}
+.tip .tools [data-alt]:hover{opacity:1}
 .say{display:flex;gap:8px}
 .say input{flex:1;background:var(--surface);border:1px solid var(--line2);border-radius:6px;padding:12px 14px;color:var(--paper);font-family:var(--serif);font-size:15px}
 .say input:focus{outline:none;border-color:var(--brass)}
@@ -118,7 +121,7 @@ header{border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:20p
   <button data-a="framebreak">✦ framebreak</button>
 </div>
 <div class="bar"><div class="barin">
-  <div class="tip"><span id="tiptext">select any text in an answer to question it · or just ask below</span><span class="tools"><button id="rsimpler">simpler</button><button id="rtech">technical</button><button id="rctx">+ context</button><button id="wall">✋ hit a wall</button><button id="improve">⟳ improve</button></span></div>
+  <div class="tip"><span id="tiptext">select any text to question it · or set the altitude of the last answer ↓</span><span class="tools"><button data-alt="high_orbit">high orbit</button><button data-alt="low_orbit">low orbit</button><button data-alt="helicopter">helicopter</button><button data-alt="closeup">close-up</button><button data-alt="microscope">microscope</button><button id="wall">✋ hit a wall</button><button id="improve">⟳ improve</button></span></div>
   <div class="say">
     <input id="say" placeholder="what do you want to be able to do?" autofocus>
     <button id="send">Ask</button>
@@ -291,13 +294,12 @@ async function openBank(){
 }
 function explainCmd(it){if(!it)return;drawer.classList.remove('open');
   send({action:'explain',selection:(it.direction||it.pattern||''),question:'from project '+(it.project||'?')+', closes gap "'+(it.pattern||'')+'" — '+(it.why||'')},'explain: '+(it.pattern||'command'),false);}
-function refine(action){const last=[...MESSAGES].reverse().find(m=>m.role==='teacher');if(!last)return;
-  send({action,selection:last.content.slice(0,500)},({simpler:'simpler',technical:'more technical',context:'more context'}[action]||action),false);}
+function altitude(alt){const last=[...MESSAGES].reverse().find(m=>m.role==='teacher');if(!last)return;
+  const L={high_orbit:'high orbit',low_orbit:'low orbit',helicopter:'helicopter',closeup:'close-up',microscope:'microscope'};
+  send({action:alt,selection:last.content.slice(0,500)},L[alt]||alt,false);}
 document.getElementById('bankbtn').onclick=openBank;
 document.getElementById('drawerx').onclick=()=>drawer.classList.remove('open');
-document.getElementById('rsimpler').onclick=()=>refine('simpler');
-document.getElementById('rtech').onclick=()=>refine('technical');
-document.getElementById('rctx').onclick=()=>refine('context');
+document.querySelectorAll('.tip .tools [data-alt]').forEach(b=>b.onclick=()=>altitude(b.dataset.alt));
 async function learn(){
   const inp=document.getElementById('repopath'), btn=document.getElementById('learnbtn'), prog=document.getElementById('learnprog');
   const repo=(inp.value||'').trim(); if(!repo){inp.focus();return;}
