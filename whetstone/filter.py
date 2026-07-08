@@ -118,12 +118,16 @@ def load_breadcrumbs():
     return rows
 
 
-def select(rows, target):
-    """Unique patterns; if a target repo is given, focus on its patterns. Each pattern is
-    annotated with how many distinct repos it recurs in — the recurrence (compounding) signal."""
+def select(rows, target, cmap=None):
+    """Unique patterns; if a target repo is given, focus on its patterns. Recurrence
+    (the compounding signal) is counted by CANONICAL id when cmap is given, so the same
+    habit under different free-text names accumulates across repos; falls back to the
+    raw pattern text when no cmap is available (back-compat)."""
+    def key(p):
+        return (cmap or {}).get(p, p)
     repos_of = {}
     for r in rows:
-        repos_of.setdefault(r.get("pattern"), set()).add(r.get("repo"))
+        repos_of.setdefault(key(r.get("pattern")), set()).add(r.get("repo"))
     seen, out = set(), []
     for r in rows:
         p = r.get("pattern")
@@ -132,7 +136,7 @@ def select(rows, target):
         if target and r.get("repo") != target:
             continue
         seen.add(p)
-        out.append({**r, "n_repos": len(repos_of.get(p, set()))})
+        out.append({**r, "canon": key(p), "n_repos": len(repos_of.get(key(p), set()))})
     return out
 
 
@@ -151,7 +155,9 @@ def judge(pats, frontier=None):
 def main():
     target = sys.argv[1] if len(sys.argv) > 1 else None
     rows = load_breadcrumbs()
-    pats = select(rows, target) or select(rows, None)
+    import canon
+    cmap = canon.canonicalize([r.get("pattern") for r in rows if r.get("pattern")])
+    pats = select(rows, target, cmap) or select(rows, None, cmap)
     if not pats:
         print("no breadcrumbs yet — run breadcrumbs.py <repo> first"); return
 

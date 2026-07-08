@@ -1,6 +1,28 @@
 import json, unittest, tempfile, pathlib
 from unittest import mock
 import canon
+import filter as flt
+
+
+class TestSelectRecurrence(unittest.TestCase):
+    def test_recurrence_counts_by_canon(self):
+        rows = [
+            {"repo": "A", "pattern": "structured JSON output", "evidence": "x"},
+            {"repo": "B", "pattern": "schema-constrained outputs", "evidence": "y"},
+        ]
+        cmap = {"structured JSON output": "structured-output-contract",
+                "schema-constrained outputs": "structured-output-contract"}
+        out = flt.select(rows, None, cmap)
+        self.assertEqual(len(out), 2)                       # two distinct free-text patterns
+        for p in out:
+            self.assertEqual(p["n_repos"], 2)               # both share one canon -> recurs across 2 repos
+            self.assertEqual(p["canon"], "structured-output-contract")
+
+    def test_backcompat_without_cmap(self):
+        rows = [{"repo": "A", "pattern": "P", "evidence": ""},
+                {"repo": "B", "pattern": "P", "evidence": ""}]
+        out = flt.select(rows, None)
+        self.assertEqual(out[0]["n_repos"], 2)              # identical free-text still counts
 
 
 class TestCanon(unittest.TestCase):
