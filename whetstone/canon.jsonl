@@ -1,0 +1,12 @@
+{"id": "structured-output-contract", "name": "Structured output contract", "blurb": "schema/tool-enforced output, not string-parsed JSON"}
+{"id": "llm-as-judge", "name": "LLM-as-judge", "blurb": "model grades/scores outputs against a rubric"}
+{"id": "eval-set-and-regression-gate", "name": "Eval set + regression gate", "blurb": "golden cases block releases on regression"}
+{"id": "retrieval-grounded-generation", "name": "Retrieval-grounded generation", "blurb": "answers grounded in retrieved sources with citations"}
+{"id": "citation-provenance", "name": "Citation provenance", "blurb": "verify/strip citations, mark grounded vs unverified"}
+{"id": "rate-limit-and-backoff", "name": "Rate limiting + backoff", "blurb": "bounded concurrency, honor Retry-After, jittered backoff"}
+{"id": "prompt-versioning-and-telemetry", "name": "Prompt versioning + telemetry", "blurb": "pin model version, log prompt version/tokens/cost/latency"}
+{"id": "agent-loop-with-state", "name": "Agent loop with state", "blurb": "explicit resumable state + checkpoints, not a linear chain"}
+{"id": "tool-function-calling", "name": "Tool / function calling", "blurb": "structured tool invocation"}
+{"id": "prompt-caching", "name": "Prompt caching", "blurb": "cache stable prompt prefixes"}
+{"id": "model-routing-fallback", "name": "Model routing / fallback", "blurb": "route or fall back across models"}
+{"id": "guardrails-and-validation", "name": "Guardrails + validation", "blurb": "validate/repair model output before use"}

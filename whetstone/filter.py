@@ -40,6 +40,8 @@ a technique to DIRECT and JUDGE, not code to hand-write.
 - Rank gaps by leverage: how much it would actually improve their work. Patterns marked "recurs across N of your repos" are higher-leverage — a fix there compounds across projects.
 - Tag each gap's blast radius in "risk": "money" (can cost, charge, or lose money), "data" (can corrupt or lose data), "production" (can break a live system), or "quality" (just better output). Pick the highest that genuinely applies.
 - Cite the frontier item ID(s) that justify each gap in "source_ids" (e.g. ["F3"]). If the gap comes from your own general knowledge and NO listed frontier item supports it, set "source_ids" to []. NEVER invent an ID that is not listed above.
+- These are NOT gaps — set gap=false and do not manufacture a sharper move: writing type hints or docstrings, using simple f-string prompt templates, or any practice that is already current best practice or baseline hygiene.
+- A gap must name what the developer's CURRENT practice specifically lacks versus a sharper move — not merely that the topic is active on the frontier. A pattern being widely discussed now is not evidence that their way of doing it is behind.
 
 Return ONLY a JSON array, no prose, no fences. One item per pattern:
 {{"pattern": "<their pattern>", "gap": true|false, "current_move": "<the sharper move, short>", \
@@ -118,12 +120,16 @@ def load_breadcrumbs():
     return rows
 
 
-def select(rows, target):
-    """Unique patterns; if a target repo is given, focus on its patterns. Each pattern is
-    annotated with how many distinct repos it recurs in — the recurrence (compounding) signal."""
+def select(rows, target, cmap=None):
+    """Unique patterns; if a target repo is given, focus on its patterns. Recurrence
+    (the compounding signal) is counted by CANONICAL id when cmap is given, so the same
+    habit under different free-text names accumulates across repos; falls back to the
+    raw pattern text when no cmap is available (back-compat)."""
+    def key(p):
+        return (cmap or {}).get(p, p)
     repos_of = {}
     for r in rows:
-        repos_of.setdefault(r.get("pattern"), set()).add(r.get("repo"))
+        repos_of.setdefault(key(r.get("pattern")), set()).add(r.get("repo"))
     seen, out = set(), []
     for r in rows:
         p = r.get("pattern")
@@ -132,7 +138,7 @@ def select(rows, target):
         if target and r.get("repo") != target:
             continue
         seen.add(p)
-        out.append({**r, "n_repos": len(repos_of.get(p, set()))})
+        out.append({**r, "canon": key(p), "n_repos": len(repos_of.get(key(p), set()))})
     return out
 
 
@@ -151,7 +157,9 @@ def judge(pats, frontier=None):
 def main():
     target = sys.argv[1] if len(sys.argv) > 1 else None
     rows = load_breadcrumbs()
-    pats = select(rows, target) or select(rows, None)
+    import canon
+    cmap = canon.canonicalize([r.get("pattern") for r in rows if r.get("pattern")])
+    pats = select(rows, target, cmap) or select(rows, None, cmap)
     if not pats:
         print("no breadcrumbs yet — run breadcrumbs.py <repo> first"); return
 
