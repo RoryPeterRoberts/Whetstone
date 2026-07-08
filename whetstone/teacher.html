@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TeachRoryLLMs — the teacher</title>
+<style>
+:root{
+  --ground:#161209; --surface:#231c12; --line:#3a2f1e; --line2:#4a3d28;
+  --brass:#caa863; --brass-hi:#e6c987; --faint:#8a7f68;
+  --paper:#ece4d2; --muted:#b3a890; --ember:#ff5c33; --adv:#69a8e6;
+  --serif:"Iowan Old Style",Palatino,Georgia,serif;
+  --mono:ui-monospace,"JetBrains Mono",Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--ground);color:var(--paper);font-family:var(--serif);line-height:1.62;
+  display:flex;flex-direction:column;min-height:100vh}
+.wrap{max-width:770px;width:100%;margin:0 auto;padding:22px 22px 8px;flex:1}
+header{border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:20px}
+.brand{font-size:20px;color:var(--brass-hi);font-weight:600}
+.brand .sub{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.08em;font-weight:400;margin-left:8px}
+.road{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:11px;font-family:var(--mono);font-size:11px}
+.rc{color:var(--muted)} .rc.spine{color:var(--brass)} .rc.adventure{color:var(--adv)} .rc.muted{color:var(--faint)}
+.rarr{color:var(--line2)} .dest{color:var(--faint);margin-left:auto;padding-left:10px}
+/* thread */
+#thread{display:flex;flex-direction:column;gap:20px}
+.msg .who{font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;margin-bottom:6px}
+.msg.you .who{color:var(--faint)} .msg.teacher .who{color:var(--brass)}
+.msg.you .body{color:var(--muted);font-size:15px;white-space:pre-wrap}
+.msg.teacher .body{cursor:text}
+.think{color:var(--faint);font-family:var(--mono);font-size:13px}
+.think::after{content:"▍";animation:b 1s steps(2) infinite}@keyframes b{50%{opacity:0}}
+.body h2{font-size:12px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.12em;color:var(--ember);margin:20px 0 8px}
+.body h2:first-child{margin-top:0}
+.body h3{font-size:16px;color:var(--brass);margin:16px 0 6px}
+.body p{margin:0 0 12px;font-size:15.5px}
+.body code{font-family:var(--mono);font-size:13px;background:var(--ground);padding:1px 5px;border-radius:3px;color:var(--brass-hi)}
+.body pre{background:var(--ground);border:1px solid var(--line2);border-radius:5px;padding:14px 16px;overflow-x:auto;margin:0 0 14px}
+.body pre code{background:none;padding:0;color:var(--paper);font-size:12.5px;line-height:1.6}
+.body a{color:var(--brass-hi)} .body em{color:var(--brass-hi);font-style:italic} .body strong{color:var(--paper)}
+.body ul{margin:0 0 12px;padding-left:20px} .body li{margin:3px 0}
+.hello{color:var(--muted);font-size:15px;margin-bottom:6px}
+.hint{color:var(--faint);font-size:12.5px;margin-bottom:14px;font-family:var(--mono)}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{background:var(--surface);border:1px solid var(--line);color:var(--muted);border-radius:20px;padding:6px 13px;font-size:12.5px;cursor:pointer;font-family:var(--serif)}
+.chip:hover{border-color:var(--brass);color:var(--paper)}
+/* selection toolbar */
+#seltool{position:fixed;display:none;z-index:50;background:#2c2416;border:1px solid var(--line2);border-radius:7px;
+  padding:4px;box-shadow:0 6px 24px rgba(0,0,0,.5);gap:2px}
+#seltool button{background:transparent;border:none;color:var(--brass);font-family:var(--mono);font-size:11.5px;
+  padding:6px 9px;border-radius:4px;cursor:pointer;white-space:nowrap}
+#seltool button:hover{background:var(--surface);color:var(--brass-hi)}
+/* sticky input */
+.bar{position:sticky;bottom:0;background:linear-gradient(to top,var(--ground) 72%,rgba(22,18,9,0));padding:12px 0 18px}
+.barin{max-width:770px;margin:0 auto;padding:0 22px}
+.tip{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-family:var(--mono);font-size:10.5px;color:var(--faint);margin-bottom:7px}
+.tip .tools{display:flex;gap:6px}
+.tip .tools button{background:transparent;border:1px solid var(--line2);color:var(--faint);border-radius:14px;padding:3px 10px;font-family:var(--mono);font-size:10.5px;cursor:pointer}
+.tip .tools button:hover{border-color:var(--brass);color:var(--brass)}
+/* command cards + bank */
+.cmd{display:flex;align-items:flex-start;gap:12px;justify-content:space-between;background:var(--ground);border:1px solid var(--line2);border-left:3px solid var(--brass);border-radius:5px;padding:11px 14px;margin:0 0 14px}
+.cmd .cmd-t{font-family:var(--mono);font-size:12.5px;color:var(--brass-hi);line-height:1.55;white-space:pre-wrap}
+.cmd .cmd-copy{flex:none;background:var(--brass);color:var(--ground);border:none;border-radius:5px;padding:7px 12px;font-family:var(--mono);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap}
+.cmd .cmd-copy:hover{background:var(--brass-hi)}
+.bankbtn{float:right;background:transparent;border:1px solid var(--line2);color:var(--brass);border-radius:14px;padding:4px 12px;font-family:var(--mono);font-size:11px;cursor:pointer}
+.bankbtn:hover{border-color:var(--brass);color:var(--brass-hi)}
+.drawer{position:fixed;top:0;right:0;height:100%;width:370px;max-width:88vw;background:var(--surface);border-left:1px solid var(--line2);box-shadow:-10px 0 34px rgba(0,0,0,.45);transform:translateX(103%);transition:transform .24s ease;z-index:70;display:flex;flex-direction:column}
+.drawer.open{transform:none}
+.drawer h3{margin:0;padding:16px 18px;border-bottom:1px solid var(--line);font-size:14px;color:var(--brass-hi);display:flex;justify-content:space-between;align-items:center;font-family:var(--serif)}
+.drawer h3 .x{background:none;border:none;color:var(--faint);font-size:20px;cursor:pointer;line-height:1}
+.drawer .list{overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.drawer .bk{background:var(--ground);border:1px solid var(--line);border-radius:6px;padding:10px 12px;cursor:pointer}
+.drawer .bk:hover{border-color:var(--brass)}
+.drawer .bk .c{font-family:var(--mono);font-size:9px;color:var(--faint);text-transform:uppercase;letter-spacing:.09em;margin-bottom:4px}
+.drawer .bk .d{font-family:var(--mono);font-size:12px;color:var(--brass-hi);line-height:1.5}
+.drawer .bk .d.copied{color:var(--ember)}
+.drawer .empty{color:var(--faint);font-size:13px;font-family:var(--mono);padding:8px 2px}
+.say{display:flex;gap:8px}
+.say input{flex:1;background:var(--surface);border:1px solid var(--line2);border-radius:6px;padding:12px 14px;color:var(--paper);font-family:var(--serif);font-size:15px}
+.say input:focus{outline:none;border-color:var(--brass)}
+.say button{background:var(--brass);color:var(--ground);border:none;border-radius:6px;padding:12px 20px;font-weight:600;cursor:pointer;font-family:var(--mono);font-size:13px}
+.say button:disabled{opacity:.5;cursor:default}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">The teacher<span class="sub">codex · local · dynamic</span><button class="bankbtn" id="bankbtn">⎘ command bank</button></div>
+    <div class="road" id="road"></div>
+  </header>
+  <div id="thread"></div>
+</div>
+<div id="seltool" onmousedown="event.preventDefault()">
+  <button data-a="simpler">simpler</button>
+  <button data-a="deeper">↓ deeper</button>
+  <button data-a="challenge">✋ challenge</button>
+  <button data-a="verify">◇ verify</button>
+  <button data-a="framebreak">✦ framebreak</button>
+</div>
+<div class="bar"><div class="barin">
+  <div class="tip"><span id="tiptext">select any text in an answer to question it · or just ask below</span><span class="tools"><button id="wall">✋ hit a wall</button><button id="improve">⟳ improve</button></span></div>
+  <div class="say">
+    <input id="say" placeholder="what do you want to be able to do?" autofocus>
+    <button id="send">Ask</button>
+  </div>
+</div></div>
+<div class="drawer" id="drawer"><h3>Command bank<button class="x" id="drawerx">×</button></h3><div class="list" id="banklist"></div></div>
+<script>
+const SUGGEST=["constrained decoding","give a local model tools","run a model on your 5090","RAG on your own docs","LoRA fine-tune","speculative decoding"];
+const thread=document.getElementById('thread'), sayIn=document.getElementById('say'), sendBtn=document.getElementById('send'), tool=document.getElementById('seltool');
+let MESSAGES=[], TRAIL=[], TOPIC="", SEL="", busy=false, PROFILE={known:[],asked:[],served:[]};
+
+fetch('/profile').then(r=>r.json()).then(p=>{PROFILE=p||PROFILE;}).catch(()=>{});
+
+function md(s){
+  s=s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const blocks=[];
+  s=s.replace(/```(\w*)\n([\s\S]*?)```/g,(m,l,c)=>{blocks.push('<pre><code>'+c.replace(/\n$/,'')+'</code></pre>');return ' ⁣'+(blocks.length-1)+'⁣ ';});
+  const inl=t=>t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/`(.+?)`/g,'<code>$1</code>').replace(/\[(.+?)\]\((.+?)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+  let html='',inlist=false;
+  for(const ln of s.split('\n')){
+    const t=ln.trim(), bm=t.match(/^⁣(\d+)⁣$/);
+    if(bm){if(inlist){html+='</ul>';inlist=false;}html+=blocks[+bm[1]];continue;}
+    if(/^DIRECTION:\s*/i.test(ln)){if(inlist){html+='</ul>';inlist=false;}
+      let cmd=ln.replace(/^DIRECTION:\s*/i,'').replace(/^["“]+|["”]+$/g,'').trim();
+      const raw=cmd.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>');
+      html+='<div class="cmd" data-cmd="'+raw.replace(/"/g,'&quot;')+'"><span class="cmd-t">'+cmd+'</span><button class="cmd-copy">⎘ copy for agent</button></div>';continue;}
+    if(/^###\s+/.test(ln)){if(inlist){html+='</ul>';inlist=false;}html+='<h3>'+inl(ln.replace(/^###\s+/,''))+'</h3>';}
+    else if(/^#{1,2}\s+/.test(ln)){if(inlist){html+='</ul>';inlist=false;}html+='<h2>'+inl(ln.replace(/^#{1,2}\s+/,''))+'</h2>';}
+    else if(/^\s*[-*]\s+/.test(ln)){if(!inlist){html+='<ul>';inlist=true;}html+='<li>'+inl(ln.replace(/^\s*[-*]\s+/,''))+'</li>';}
+    else if(t===''){if(inlist){html+='</ul>';inlist=false;}}
+    else{if(inlist){html+='</ul>';inlist=false;}html+='<p>'+inl(ln)+'</p>';}
+  }
+  if(inlist)html+='</ul>';
+  return html;
+}
+
+function splitTag(s){
+  const m=s.match(/<<\s*(spine|adventure)[^>]*>>\s*$/i);
+  return m?{content:s.slice(0,m.index).trim(),tag:m[1].toLowerCase()}:{content:s,tag:null};
+}
+
+function drawRoad(){
+  const road=document.getElementById('road');
+  const chips=TRAIL.map(t=>'<span class="rc '+(t.tag||'')+'">'+(t.tag==='adventure'?'◇':'●')+' '+t.label+'</span>').join('<span class="rarr">→</span>');
+  road.innerHTML=(chips||'<span class="rc muted">the road</span>')+'<span class="dest">→ harness LLMs, owned</span>';
+}
+
+function draw(){
+  if(MESSAGES.length===0){
+    thread.innerHTML='<div class="hello">What do you want to be able to <em>do</em> with an LLM? Ask below — or start here:</div>'
+      +'<div class="hint">the goal is harnessing, not the theory. theory is an adventure — only if you ask.</div>'
+      +'<div class="chips">'+SUGGEST.map(c=>'<button class="chip">'+c+'</button>').join('')+'</div>';
+    thread.querySelectorAll('.chip').forEach(b=>b.onclick=()=>say(b.textContent));
+    return;
+  }
+  thread.innerHTML=MESSAGES.map(m=>{
+    const who=m.role==='you'?'You':'Teacher';
+    const body=m.role==='you'?('<div class="body">'+m.content.replace(/</g,'&lt;')+'</div>'):('<div class="body">'+md(m.content)+'</div>');
+    return '<div class="msg '+m.role+'"><div class="who">'+who+'</div>'+body+'</div>';
+  }).join('')+(busy?'<div class="msg teacher"><div class="who">Teacher</div><span class="think">thinking</span></div>':'');
+  wireCards();
+  const last=thread.lastElementChild; if(last)last.scrollIntoView({behavior:'smooth',block:'end'});
+}
+function wireCards(){
+  document.querySelectorAll('.cmd-copy').forEach(b=>{if(b._w)return;b._w=1;
+    b.onclick=()=>{const cmd=b.parentElement.dataset.cmd;navigator.clipboard.writeText(cmd).then(()=>{const o=b.textContent;b.textContent='✓ copied';setTimeout(()=>b.textContent=o,1400);});};
+  });
+}
+
+async function send(payload,youLabel,isTopLevel){
+  if(busy)return;
+  MESSAGES.push({role:'you',content:youLabel});
+  if(isTopLevel){TOPIC=payload.concept||TOPIC;TRAIL.push({label:(payload.concept||youLabel).slice(0,30),tag:null});}
+  busy=true;hideTool();draw();drawRoad();sendBtn.disabled=true;
+  try{
+    const r=await fetch('/teach',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(Object.assign({messages:MESSAGES,concept:TOPIC},payload))});
+    const d=await r.json();
+    const {content,tag}=splitTag(d.lesson||'_(no reply)_');
+    MESSAGES.push({role:'teacher',content});
+    if(tag&&TRAIL.length)TRAIL[TRAIL.length-1].tag=tag;
+    (content.match(/^DIRECTION:\s*(.+)$/gim)||[]).forEach(l=>{
+      const dir=l.replace(/^DIRECTION:\s*/i,'').replace(/^["“]+|["”]+$/g,'').trim();
+      if(dir)fetch('/bank',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({concept:TOPIC,direction:dir})}).catch(()=>{});
+    });
+  }catch(e){MESSAGES.push({role:'teacher',content:'_(could not reach the teacher — is the server running?)_'});}
+  busy=false;sendBtn.disabled=false;draw();drawRoad();
+}
+
+function say(text){text=(text||'').trim();if(!text)return;
+  const concept=text.replace(/^teach me:\s*/i,'').slice(0,60);
+  send({concept},text,true);
+}
+function act(action){if(!SEL)return;
+  const L={simpler:'simpler',deeper:'go deeper',challenge:'challenge',verify:'verify',framebreak:'framebreak from'};
+  if(action==='simpler')recordAsked(SEL);
+  send({action,selection:SEL},(L[action]||action)+': “'+SEL+'”',false);
+}
+function recordAsked(term){
+  if(!PROFILE.asked.includes(term)){PROFILE.asked.push(term);
+    fetch('/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(PROFILE)}).catch(()=>{});}
+}
+
+function showTool(rect){
+  tool.style.display='flex';
+  const w=tool.offsetWidth||300;
+  let x=rect.left+rect.width/2-w/2; x=Math.max(8,Math.min(x,innerWidth-w-8));
+  let y=rect.top-tool.offsetHeight-8; if(y<8)y=rect.bottom+8;
+  tool.style.left=x+'px'; tool.style.top=y+'px';
+}
+function hideTool(){tool.style.display='none';SEL='';}
+
+document.addEventListener('mouseup',e=>{
+  if(e.target.closest&&e.target.closest('#seltool'))return;
+  setTimeout(()=>{
+    const sel=window.getSelection(), text=sel&&sel.toString().trim();
+    if(!text||text.length<2){hideTool();return;}
+    let node=sel.anchorNode; node=node&&node.nodeType===3?node.parentElement:node;
+    if(!node||!node.closest||!node.closest('.msg.teacher')){hideTool();return;}
+    SEL=text; showTool(sel.getRangeAt(0).getBoundingClientRect());
+  },10);
+});
+tool.querySelectorAll('button').forEach(b=>b.onclick=()=>act(b.dataset.a));
+document.addEventListener('scroll',()=>{if(tool.style.display!=='none')hideTool();},true);
+
+let mode='ask';
+const wallBtn=document.getElementById('wall');
+wallBtn.onclick=()=>{
+  if(mode==='wall'){mode='ask';wallBtn.textContent='✋ hit a wall';sayIn.placeholder='what do you want to be able to do?';return;}
+  mode='wall';wallBtn.textContent='✋ cancel';sayIn.placeholder='what tripped you? (enter to log — blank is fine)';sayIn.focus();
+};
+async function logWall(note){
+  mode='ask';wallBtn.textContent='✋ hit a wall';sayIn.placeholder='what do you want to be able to do?';
+  try{await fetch('/wall',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({concept:TOPIC,note:note||'',messages:MESSAGES})});
+    MESSAGES.push({role:'teacher',content:'*Wall logged'+(note?': “'+note+'”':'')+'. Hit ⟳ improve when you want me to turn what tripped you into a rule.*'});draw();
+  }catch(e){}
+}
+async function improve(){
+  if(busy)return;busy=true;sendBtn.disabled=true;draw();
+  try{const r=await fetch('/improve',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});const d=await r.json();
+    MESSAGES.push({role:'teacher',content:'## Learned — new rules for your teacher\n\n'+(d.rules||'_(nothing yet)_')});
+  }catch(e){MESSAGES.push({role:'teacher',content:'_(improve failed)_'});}
+  busy=false;sendBtn.disabled=false;draw();
+}
+document.getElementById('improve').onclick=improve;
+const drawer=document.getElementById('drawer');
+async function openBank(){
+  const list=document.getElementById('banklist');
+  list.innerHTML='<div class="empty">loading…</div>';drawer.classList.add('open');
+  try{const items=await (await fetch('/bank')).json();
+    list.innerHTML=items.length?items.map(it=>'<div class="bk" data-cmd="'+(it.direction||'').replace(/"/g,'&quot;')+'"><div class="c">'+((it.concept||'general').replace(/</g,'&lt;'))+'</div><div class="d">'+(it.direction||'').replace(/</g,'&lt;')+'</div></div>').join(''):'<div class="empty">no commands yet — they collect here as you learn.</div>';
+    list.querySelectorAll('.bk').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.dataset.cmd);const d=b.querySelector('.d');d.classList.add('copied');setTimeout(()=>d.classList.remove('copied'),900);});
+  }catch(e){list.innerHTML='<div class="empty">(could not load the bank)</div>';}
+}
+document.getElementById('bankbtn').onclick=openBank;
+document.getElementById('drawerx').onclick=()=>drawer.classList.remove('open');
+sendBtn.onclick=()=>{const v=sayIn.value;sayIn.value='';(mode==='wall'?logWall:say)(v);};
+sayIn.onkeydown=e=>{if(e.key==='Enter'){const v=sayIn.value;sayIn.value='';(mode==='wall'?logWall:say)(v);}};
+draw();drawRoad();
+</script>
+</body>
+</html>

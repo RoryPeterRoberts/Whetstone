@@ -1,0 +1,1 @@
+{"ts": 1783520436, "concept": "constrained decoding", "direction": "Add constrained output for this LLM call so it can only return the exact structure the next step expects, then test malformed edge cases."}
