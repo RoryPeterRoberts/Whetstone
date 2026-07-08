@@ -38,10 +38,11 @@ Rules:
 - The better move must be current and trustworthy, and useful to someone who COMMANDS a coding agent — \
 a technique to DIRECT and JUDGE, not code to hand-write.
 - Rank gaps by leverage: how much it would actually improve their work. Patterns marked "recurs across N of your repos" are higher-leverage — a fix there compounds across projects.
+- Tag each gap's blast radius in "risk": "money" (can cost, charge, or lose money), "data" (can corrupt or lose data), "production" (can break a live system), or "quality" (just better output). Pick the highest that genuinely applies.
 
 Return ONLY a JSON array, no prose, no fences. One item per pattern:
 {{"pattern": "<their pattern>", "gap": true|false, "current_move": "<the sharper move, short>", \
-"why": "<one concrete line on why it beats what they do>", "confidence": "high|med|low"}}"""
+"why": "<one concrete line on why it beats what they do>", "confidence": "high|med|low", "risk": "money|data|production|quality"}}"""
 
 
 def call_codex(prompt):
@@ -108,6 +109,18 @@ def select(rows, target):
     return out
 
 
+def judge(pats, frontier=None):
+    """Run the REAL filter judgment on pattern dicts -> parsed items
+    ({pattern, gap, current_move, why, confidence, risk}). This is the judge the harness calibrates."""
+    def fmt(p):
+        rec = f" (recurs across {p['n_repos']} of your repos)" if p.get("n_repos", 1) > 1 else ""
+        return f"- {p['pattern']}{rec} — {p.get('evidence', '')}"
+    listing = "\n".join(fmt(p) for p in pats)
+    if frontier is None:
+        frontier = load_frontier()
+    return parse_json(call_codex(PROMPT.format(patterns=listing, frontier=frontier)))
+
+
 def main():
     target = sys.argv[1] if len(sys.argv) > 1 else None
     rows = load_breadcrumbs()
@@ -115,15 +128,17 @@ def main():
     if not pats:
         print("no breadcrumbs yet — run breadcrumbs.py <repo> first"); return
 
-    def fmt(p):
-        rec = f" (recurs across {p['n_repos']} of your repos)" if p.get("n_repos", 1) > 1 else ""
-        return f"- {p['pattern']}{rec} — {p.get('evidence', '')}"
-
-    listing = "\n".join(fmt(p) for p in pats)
-    items = parse_json(call_codex(PROMPT.format(patterns=listing, frontier=load_frontier())))
+    items = judge(pats)
     gaps = [it for it in items if it.get("gap")]
-    order = {"high": 0, "med": 1, "low": 2}
-    gaps.sort(key=lambda g: order.get(g.get("confidence", "low"), 3))
+    meta = {p["pattern"]: p for p in pats}
+    for g in gaps:
+        src = meta.get(g.get("pattern"), {})
+        g["project"] = target or src.get("repo", "")
+        g["evidence"] = src.get("evidence", "")
+        g["n_repos"] = src.get("n_repos", 1)
+    conf = {"high": 0, "med": 1, "low": 2}
+    risk = {"money": 0, "data": 1, "production": 2, "quality": 3}
+    gaps.sort(key=lambda g: (risk.get(g.get("risk", "quality"), 4), conf.get(g.get("confidence", "low"), 3)))
 
     with open(GAPS, "w") as f:
         for g in gaps:
@@ -131,7 +146,7 @@ def main():
 
     print(f"{len(pats)} patterns checked · {len(gaps)} gaps (teaching targets)\n")
     for g in gaps:
-        print(f"  [{g.get('confidence', '?').upper()}] {g['pattern']}")
+        print(f"  [{g.get('risk', '?').upper()} · {g.get('confidence', '?').upper()}] {g['pattern']}")
         print(f"      → {g.get('current_move', '')}")
         print(f"        {g.get('why', '')}\n")
     print(f"({len(pats) - len(gaps)} already at current best practice — nothing to teach there.)")

@@ -76,6 +76,21 @@ header{border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:20p
 .drawer .bk .d{font-family:var(--mono);font-size:12px;color:var(--brass-hi);line-height:1.5}
 .drawer .bk .d.copied{color:var(--ember)}
 .drawer .empty{color:var(--faint);font-size:13px;font-family:var(--mono);padding:8px 2px}
+.drawer .grp{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--brass);margin:16px 2px 4px;padding-top:10px;border-top:1px solid var(--line)}
+.drawer .list > .grp:first-child{border-top:none;padding-top:0;margin-top:0}
+.bk-h{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.risk{font-family:var(--mono);font-size:8px;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:4px;font-weight:600;flex:none}
+.risk.money{background:#5c1f1f;color:#ffb3a1}.risk.production{background:#5c3a1f;color:#ffcf9a}
+.risk.data{background:#33285c;color:#c3b3ff}.risk.quality{background:#28331f;color:#b6d59a}
+.bk-b{display:flex;gap:6px;margin-top:9px}
+.bk-b button{background:transparent;border:1px solid var(--line2);color:var(--brass);border-radius:5px;padding:4px 11px;font-family:var(--mono);font-size:10.5px;cursor:pointer}
+.bk-b button:hover{border-color:var(--brass);color:var(--brass-hi)}
+.learnbar{display:flex;gap:8px;align-items:center;margin-top:10px}
+.learnbar input{flex:1;background:var(--panel,#1a1613);border:1px solid var(--line2);color:var(--brass-hi);border-radius:6px;padding:7px 11px;font-family:var(--mono);font-size:12px}
+.learnbar input:focus{outline:none;border-color:var(--brass)}
+.learnbar button{background:var(--brass);color:#1a1206;border:none;border-radius:6px;padding:7px 14px;font-family:var(--mono);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+.learnbar button:disabled{opacity:.5;cursor:default}
+.learnbar #learnprog{font-family:var(--mono);font-size:11px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40%}
 .say{display:flex;gap:8px}
 .say input{flex:1;background:var(--surface);border:1px solid var(--line2);border-radius:6px;padding:12px 14px;color:var(--paper);font-family:var(--serif);font-size:15px}
 .say input:focus{outline:none;border-color:var(--brass)}
@@ -87,6 +102,7 @@ header{border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:20p
 <div class="wrap">
   <header>
     <div class="brand">The teacher<span class="sub">codex · local · dynamic</span><button class="bankbtn" id="bankbtn">⎘ command bank</button></div>
+    <div class="learnbar"><input id="repopath" placeholder="/path/to/a/git/repo — e.g. ~/JOBS/Whetstone" spellcheck="false"><button id="learnbtn">Learn this repo</button><span id="learnprog"></span></div>
     <div class="road" id="road"></div>
   </header>
   <div id="thread"></div>
@@ -99,7 +115,7 @@ header{border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:20p
   <button data-a="framebreak">✦ framebreak</button>
 </div>
 <div class="bar"><div class="barin">
-  <div class="tip"><span id="tiptext">select any text in an answer to question it · or just ask below</span><span class="tools"><button id="wall">✋ hit a wall</button><button id="improve">⟳ improve</button></span></div>
+  <div class="tip"><span id="tiptext">select any text in an answer to question it · or just ask below</span><span class="tools"><button id="rsimpler">simpler</button><button id="rtech">technical</button><button id="rctx">+ context</button><button id="wall">✋ hit a wall</button><button id="improve">⟳ improve</button></span></div>
   <div class="say">
     <input id="say" placeholder="what do you want to be able to do?" autofocus>
     <button id="send">Ask</button>
@@ -247,16 +263,57 @@ async function improve(){
 }
 document.getElementById('improve').onclick=improve;
 const drawer=document.getElementById('drawer');
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+let BANKITEMS={};
 async function openBank(){
   const list=document.getElementById('banklist');
   list.innerHTML='<div class="empty">loading…</div>';drawer.classList.add('open');
   try{const items=await (await fetch('/bank')).json();
-    list.innerHTML=items.length?items.map(it=>'<div class="bk" data-cmd="'+(it.direction||'').replace(/"/g,'&quot;')+'"><div class="c">'+((it.concept||'general').replace(/</g,'&lt;'))+'</div><div class="d">'+(it.direction||'').replace(/</g,'&lt;')+'</div></div>').join(''):'<div class="empty">no commands yet — they collect here as you learn.</div>';
-    list.querySelectorAll('.bk').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.dataset.cmd);const d=b.querySelector('.d');d.classList.add('copied');setTimeout(()=>d.classList.remove('copied'),900);});
+    if(!items.length){list.innerHTML='<div class="empty">no commands yet — they collect here as you learn.</div>';return;}
+    const groups={}; items.forEach(it=>{const p=it.project||it.source||'general';(groups[p]=groups[p]||[]).push(it);});
+    BANKITEMS={}; let html='';
+    Object.keys(groups).sort().forEach(proj=>{
+      html+='<div class="grp">'+esc(proj)+'</div>';
+      groups[proj].forEach((it,i)=>{const id=proj+'#'+i;BANKITEMS[id]=it;const rk=(it.risk||'quality').toLowerCase();
+        html+='<div class="bk"><div class="bk-h"><span class="risk '+rk+'">'+rk+'</span><span class="c">'+esc(it.pattern||it.concept||'')+'</span></div>'
+          +'<div class="d">'+esc(it.direction||'')+'</div>'
+          +'<div class="bk-b"><button class="cp" data-id="'+id+'">⎘ copy</button><button class="ex" data-id="'+id+'">explain</button></div></div>';
+      });
+    });
+    list.innerHTML=html;
+    list.querySelectorAll('.cp').forEach(b=>b.onclick=()=>{const it=BANKITEMS[b.dataset.id];navigator.clipboard.writeText(it.gated||it.direction||'');b.textContent='✓ copied';setTimeout(()=>b.textContent='⎘ copy',1300);});
+    list.querySelectorAll('.ex').forEach(b=>b.onclick=()=>explainCmd(BANKITEMS[b.dataset.id]));
   }catch(e){list.innerHTML='<div class="empty">(could not load the bank)</div>';}
 }
+function explainCmd(it){if(!it)return;drawer.classList.remove('open');
+  send({action:'explain',selection:(it.direction||it.pattern||''),question:'from project '+(it.project||'?')+', closes gap "'+(it.pattern||'')+'" — '+(it.why||'')},'explain: '+(it.pattern||'command'),false);}
+function refine(action){const last=[...MESSAGES].reverse().find(m=>m.role==='teacher');if(!last)return;
+  send({action,selection:last.content.slice(0,500)},({simpler:'simpler',technical:'more technical',context:'more context'}[action]||action),false);}
 document.getElementById('bankbtn').onclick=openBank;
 document.getElementById('drawerx').onclick=()=>drawer.classList.remove('open');
+document.getElementById('rsimpler').onclick=()=>refine('simpler');
+document.getElementById('rtech').onclick=()=>refine('technical');
+document.getElementById('rctx').onclick=()=>refine('context');
+async function learn(){
+  const inp=document.getElementById('repopath'), btn=document.getElementById('learnbtn'), prog=document.getElementById('learnprog');
+  const repo=(inp.value||'').trim(); if(!repo){inp.focus();return;}
+  btn.disabled=true; prog.textContent='starting…';
+  try{
+    const r=await (await fetch('/learn',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({repo})})).json();
+    if(!r.ok){ if(r.running){poll();} else {prog.textContent=r.error||'could not start'; btn.disabled=false;} return; }
+    poll();
+  }catch(e){prog.textContent='(server not reachable)'; btn.disabled=false;}
+}
+async function poll(){
+  const btn=document.getElementById('learnbtn'), prog=document.getElementById('learnprog');
+  try{
+    const s=await (await fetch('/learn_status')).json();
+    prog.textContent=(s.lines||[]).slice(-1)[0]||'';
+    if(s.running){setTimeout(poll,1500);} else {btn.disabled=false; openBank();}
+  }catch(e){prog.textContent='(status lost)'; btn.disabled=false;}
+}
+document.getElementById('learnbtn').onclick=learn;
+document.getElementById('repopath').addEventListener('keydown',e=>{if(e.key==='Enter')learn();});
 sendBtn.onclick=()=>{const v=sayIn.value;sayIn.value='';(mode==='wall'?logWall:say)(v);};
 sayIn.onkeydown=e=>{if(e.key==='Enter'){const v=sayIn.value;sayIn.value='';(mode==='wall'?logWall:say)(v);}};
 draw();drawRoad();

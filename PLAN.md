@@ -4,6 +4,25 @@
 it finds the recurring gap between how you build and how the frontier now builds, teaches it, and banks it.
 That's the whole value prop, thin — enough to demo end to end.
 
+## v1.1 — the bank became a learning surface (built 2026-07-08, verified end to end)
+- **Gate wrapper** — every banked command carries an evaluate-first gate ("judge it against this codebase; if you agree, plan it, don't edit yet"), so a blind paste can't blind-execute. `teach.py` GATE.
+- **Risk lens** — the filter tags each gap money / data / production / quality and sorts money-risk to the top. Verified: fixerupper's concurrency gap surfaced `[MONEY · HIGH]` first.
+- **Principle-banking** — each lesson banks the one-line transferable principle (the rod), not just the command (the fish).
+- **Explain + refine** — every bank card has an `explain` button that opens the teacher on that command's logic chain; `simpler / technical / + context` refine without retyping. New teacher acts: explain/technical/context.
+- **Organised by project** — the bank groups commands under the repo they came from.
+- **Close-the-loop** — `taught.jsonl` logs each taught gap; next `whet learn` marks any gap that's dropped out of the filter as applied and shows the win. Heuristic: relies on the gap leaving the fresh filter run (filter variance can false-close — tighten with an explicit "now best-practice" signal later).
+
+Still deferred: canonical pattern names (so recurrence fires), OpenBrain write-back, page-diff leaderboards, de-personalise for public.
+
+## Next step (banked 2026-07-08): /whetstone as a Claude Code skill
+Instead of (or alongside) a standalone bundle, ship Whetstone as a Claude Code skill: `/whetstone [repo]`, default = the current repo.
+
+**Why this is the right form — it makes the safety structural.** The process we ran by hand this session — Whetstone surfaces a gap + direction, the agent WITH FULL REPO CONTEXT reviews whether it is a genuine enhancement for THIS code, agrees or refuses with reasons, plans, and implements only on approval — becomes the skill's *defined workflow*, not a hopeful line inside a pasted prompt. A user cannot strip the gate and an agent cannot be handed a raw command it disagrees with or that would damage the repo; the evaluate-first step is guaranteed by the skill, not merely suggested.
+
+**Bonus:** it sidesteps the bundle / launcher / API-key questions — Claude Code is the runtime, its model is already present, the current repo is the default target, and the agent that evaluates the fix is the one that implements it.
+
+**Open design question (decide at build):** keep the gap-finder/teacher on Codex so the finder is a DIFFERENT model than the implementer (independent judgment = a safety plus), or go fully native on Claude's own model (simpler, no external dependency).
+
 ## Components & status
 
 | Piece | What it does | Status |

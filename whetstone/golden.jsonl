@@ -1,0 +1,12 @@
+{"pattern": "Parse LLM output as JSON with string search and json.loads, no schema enforcement", "evidence": "reads model text and assumes valid JSON", "expect": true, "must": true, "note": "schema/tool-enforced output is the clear current move"}
+{"pattern": "Fire unbounded concurrent LLM API calls with no rate limiting or backpressure", "evidence": "asyncio.gather over many jobs, no cap", "expect": true, "must": true, "note": "bounded queue + rate gate"}
+{"pattern": "No evaluation set; pipeline quality checked only by reading outputs by hand", "evidence": "no tests, no golden cases", "expect": true, "must": true, "note": "eval/golden sets are standard"}
+{"pattern": "Retry failed model calls immediately in a tight loop with no backoff", "evidence": "while True retry on error", "expect": true, "must": false, "note": "exponential backoff + jitter + honor Retry-After"}
+{"pattern": "Keep no record of prompts, model, tokens or cost per call", "evidence": "calls model, discards metadata", "expect": true, "must": false, "note": "tracing/observability is standard"}
+{"pattern": "Force structured output with the provider JSON Schema or tool-calling and validate before use", "evidence": "response_format json_schema then validate", "expect": false, "must": true, "note": "this IS best practice; flagging is over-reach"}
+{"pattern": "Bound concurrency with a queue, honor Retry-After, use jittered exponential backoff", "evidence": "semaphore plus backoff", "expect": false, "must": false, "note": "current best practice"}
+{"pattern": "Maintain a golden eval set and block releases on regressions", "evidence": "eval suite gates CI", "expect": false, "must": true, "note": "best practice"}
+{"pattern": "Pin the model version and log prompt version, latency, tokens and cost per call", "evidence": "structured span per call", "expect": false, "must": false, "note": "best practice"}
+{"pattern": "Ground answers in retrieved sources with citations and recency checks, refuse when unsupported", "evidence": "cite source ids, reject if none", "expect": false, "must": false, "note": "best practice"}
+{"pattern": "Write Python with type hints and docstrings", "evidence": "def f(x: int) -> int with docstring", "expect": false, "must": true, "note": "not an LLM technique with a frontier gap; flagging is a hallucinated gap"}
+{"pattern": "Assemble prompts from plain f-string templates", "evidence": "prompt = f-string with variables", "expect": false, "must": false, "note": "f-strings are fine; a prompt framework is not clearly better"}

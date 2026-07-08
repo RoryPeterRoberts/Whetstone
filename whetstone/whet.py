@@ -18,19 +18,25 @@ def _run(script, *args):
 
 
 def learn(repo, n=14, top=3):
+    proj = Path(repo).name
     print(f"\n▶ 1/4  reading what you build in {repo} …")
     _run("breadcrumbs.py", repo, n)
     print("\n▶ 2/4  finding the gaps vs current best practice …")
-    _run("filter.py", Path(repo).name)
-    print("\n▶ 3/4  teaching the top gaps + banking the commands …\n")
+    _run("filter.py", proj)
     import teach
+    closed = teach.close_loop(proj)
+    if closed:
+        print("\n✓ since last time, you applied:")
+        for c in closed:
+            print(f"    - {c}")
+    print("\n▶ 3/4  teaching the top gaps + banking the commands …\n")
     gaps = teach.load_gaps()[:int(top)]
     if not gaps:
-        print("no gaps found — you're at current best practice on what you did here."); return
+        print("no open gaps — you're at current best practice on what you did here."); return
     for g in gaps:
         r = teach.teach_gap(g)
         print("=" * 72); print(r["lesson"]); print()
-    print(f"\n✓ 4/4  loop complete. {len(gaps)} lesson(s) taught, commands banked.")
+    print(f"\n✓ 4/4  loop complete. {len(gaps)} lesson(s) taught, banked to project '{proj}'.")
     print(f"  explore + bank more:  python {ROOT / 'teacher.py'}   →  http://localhost:8099")
 
 
@@ -40,8 +46,10 @@ def main():
         learn(a[1], *(a[2:4]))
     elif a and a[0] == "watch":
         _run("watch.py", *a[1:])
+    elif a and a[0] == "check":
+        _run("judge_eval.py")
     else:
-        print("usage:\n  whet watch                     refresh the live frontier feed (run daily via cron)\n  whet learn <repo> [n] [top]    run the loop on a repo")
+        print("usage:\n  whet watch                     refresh the live frontier feed (run daily via cron)\n  whet learn <repo> [n] [top]    run the loop on a repo\n  whet check                     calibrate the judge against golden cases")
 
 
 if __name__ == "__main__":

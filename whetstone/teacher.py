@@ -8,7 +8,7 @@ Codex (bootstrap teacher) generates every reply live, obeying TEACHING_METHOD.md
   history and distills concrete rules into LEARNED.md, which is injected into every future reply.
 stdlib only — no new dependencies.
 """
-import json, os, re, shutil, subprocess, tempfile, time, socketserver, http.server
+import json, os, re, shutil, subprocess, sys, tempfile, threading, time, socketserver, http.server
 from pathlib import Path
 
 ROOT     = Path(__file__).resolve().parent
@@ -22,6 +22,25 @@ BANK     = ROOT / "bank.jsonl"
 PORT     = 8099
 CODEX    = os.environ.get("CODEX_BIN") or shutil.which("codex") or os.path.expanduser("~/.local/bin/codex")
 TAG_RE   = re.compile(r"<<\s*(spine|adventure)[^>]*>>\s*$", re.I)
+WHET     = ROOT / "whet.py"
+LEARN    = {"running": False, "lines": [], "repo": ""}
+
+
+def _do_learn(repo, n, top):
+    LEARN.update(running=True, lines=[f"learning {repo} …"], repo=repo)
+    try:
+        proc = subprocess.Popen([sys.executable, str(WHET), "learn", repo, str(n), str(top)],
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=str(ROOT), text=True)
+        for line in iter(proc.stdout.readline, ""):
+            line = line.rstrip()
+            if line:
+                LEARN["lines"].append(line)
+        proc.wait()
+    except Exception as e:
+        LEARN["lines"].append(f"(error: {e})")
+    finally:
+        LEARN["running"] = False
+        LEARN["lines"].append("✓ done — open the bank")
 
 
 def load_profile():
@@ -82,6 +101,9 @@ def build_prompt(req):
         "verify":     f'Rory wants to VERIFY "{selection}" — is it real and discussed? Name 2-3 concrete, well-known external sources with real URLs where he can check, and say plainly if it is niche or contested. Never invent a URL.',
         "framebreak": f'Give the FRAMEBREAK from "{selection}": the general principle and where else it points, <80 words.',
         "ask":        f'About "{selection}", Rory asks: "{question}". Answer straight and tight.',
+        "explain":    f'Explain this banked command so Rory can trust and use it: "{selection}". Context: {question}. Give the LOGIC as a short chain — from a fact about his code, step by step, to why this is the right move, each step checkable — then one line on when to reach for it. Plain, command-altitude, no code.',
+        "technical":  f'Rory wants "{selection}" MORE TECHNICAL — the mechanism underneath, still command-altitude (direct and judge, not code to hand-write). <90 words.',
+        "context":    f'Rory wants MORE CONTEXT around "{selection}": where it comes from, why it matters, and the provenance/logic chain that makes it trustworthy. <110 words.',
     }
     act_line = acts.get(action, "") if (action and selection) else ""
 
@@ -164,6 +186,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 if d and d not in seen:
                     seen.add(d); items.append(r)
             self._send(200, json.dumps(items))
+        elif self.path == "/learn_status":
+            self._send(200, json.dumps(LEARN))
         else:
             self._send(404, "not found", "text/plain")
 
@@ -187,6 +211,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
                                "concept": req.get("concept", ""), "selection": req.get("selection", ""),
                                "user": last_user, "reply": lesson, "tag": parse_tag(lesson)})
             self._send(200, json.dumps({"lesson": lesson}))
+
+        elif self.path == "/learn":
+            repo = (req.get("repo") or "").strip()
+            if not repo or LEARN["running"]:
+                return self._send(200, json.dumps({"ok": False, "running": LEARN["running"]}))
+            if not (Path(repo).exists() and (Path(repo) / ".git").exists()):
+                return self._send(200, json.dumps({"ok": False, "error": "not a git repo path"}))
+            threading.Thread(target=_do_learn, args=(repo, int(req.get("n", 14)), int(req.get("top", 3))), daemon=True).start()
+            return self._send(200, json.dumps({"ok": True}))
 
         elif self.path == "/wall":
             append_jsonl(WALLS, {"ts": int(time.time()), "concept": req.get("concept", ""),
