@@ -16,12 +16,17 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 BREADCRUMBS = ROOT / "breadcrumbs.jsonl"
 GAPS = ROOT / "gaps.jsonl"
+FRONTIER = ROOT / "frontier.jsonl"
 CODEX = os.environ.get("CODEX_BIN") or shutil.which("codex") or os.path.expanduser("~/.local/bin/codex")
 
 PROMPT = """You are Whetstone's filter — the part that decides what is worth teaching a builder.
 
 Here are the LLM-building patterns this developer ALREADY USES, inferred from their real git history:
 {patterns}
+
+Here is what the frontier is ACTUALLY publishing right now (recent items from curated sources — use these \
+as ground truth for what "current" means; if this is empty, fall back to your own recent knowledge):
+{frontier}
 
 For EACH pattern, judge it honestly against CURRENT best practice — what strong practitioners and the \
 frontier do NOW: is there a materially sharper, newer, or more robust move for that same job that this \
@@ -64,6 +69,18 @@ def parse_json(s):
     return []
 
 
+def load_frontier(cap=45):
+    if not FRONTIER.exists():
+        return "(no live frontier feed yet — using your own recent knowledge)"
+    lines = []
+    for ln in FRONTIER.read_text().splitlines()[:cap]:
+        try:
+            r = json.loads(ln); lines.append(f"- [{r.get('source')}] {r.get('title')}")
+        except Exception:
+            pass
+    return "\n".join(lines) or "(empty)"
+
+
 def load_patterns():
     seen, out = set(), []
     if not BREADCRUMBS.exists():
@@ -84,7 +101,7 @@ def main():
     if not pats:
         print("no breadcrumbs yet — run breadcrumbs.py <repo> first"); return
     listing = "\n".join(f"- {p['pattern']} — {p.get('evidence', '')}" for p in pats)
-    items = parse_json(call_codex(PROMPT.format(patterns=listing)))
+    items = parse_json(call_codex(PROMPT.format(patterns=listing, frontier=load_frontier())))
     gaps = [it for it in items if it.get("gap")]
     order = {"high": 0, "med": 1, "low": 2}
     gaps.sort(key=lambda g: order.get(g.get("confidence", "low"), 3))

@@ -1,7 +1,5 @@
 __pycache__/
 *.pyc
+*.jsonl
 profile.json
-interactions.jsonl
-walls.jsonl
 LEARNED.md
-data/*.jsonl

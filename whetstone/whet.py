@@ -38,8 +38,10 @@ def main():
     a = sys.argv[1:]
     if len(a) >= 2 and a[0] == "learn":
         learn(a[1], *(a[2:4]))
+    elif a and a[0] == "watch":
+        _run("watch.py", *a[1:])
     else:
-        print("usage: whet learn <repo-path> [n_commits=14] [top_gaps=3]")
+        print("usage:\n  whet watch                     refresh the live frontier feed (run daily via cron)\n  whet learn <repo> [n] [top]    run the loop on a repo")
 
 
 if __name__ == "__main__":

@@ -11,14 +11,14 @@ That's the whole value prop, thin — enough to demo end to end.
 | `whetstone/teacher.py` + `teacher.html` | The teacher — gate → derive → direction+tell; command bank; wall→improve | **built** (adopted) |
 | `whetstone/SOURCES.md` | Curated, watchable AI source list (frontier / papers / benchmarks / local) | **built** (adopted) |
 | `whetstone/breadcrumbs.py` | Reads git history → infers LLM-building patterns you used → `breadcrumbs.jsonl` | **built** |
-| `whetstone/watch.py` | Scans SOURCES via RSS + page-diff (reuse web-change-detector) → `frontier.jsonl` | to build |
+| `whetstone/watch.py` | Scans SOURCES via RSS → `frontier.jsonl` (10 feeds live; page-diff via web-change-detector later) | **built** |
 | `whetstone/filter.py` | breadcrumbs × frontier → the recurring gap → the teaching target | to build |
 | `whetstone/whet.py` (CLI) | Glue: `whet learn <repo>` runs the loop end to end | to build |
 
 ## Build order
 
 1. ✅ **Breadcrumbs** — `breadcrumbs.py` (the "what you do" stream).
-2. **Watch** — `watch.py`: turn SOURCES.md into a daily `frontier.jsonl` (RSS where it exists, page-diff via the web-change-detector, `hnrss` for keywords).
+2. ✅ **Watch** — `watch.py`: SOURCES.md → live `frontier.jsonl` (10 RSS/Atom feeds + `hnrss` keywords, stdlib only). Page-diff leaderboards via the web-change-detector: later.
 3. **Filter** — `filter.py`: for each recurring breadcrumb pattern, is there a sharper current move in `frontier.jsonl` that you're not using? Cheap local pass (5090). Output = the teaching target(s).
 4. **Wire** — feed the target into the existing teacher; the lesson's direction lands in the command bank.
 5. **CLI** — `whet learn <repo>` runs 1→4 and opens the teacher on the result.
