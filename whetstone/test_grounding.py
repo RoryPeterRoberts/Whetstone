@@ -1,6 +1,7 @@
 import unittest
 from unittest import mock
 import filter as flt
+import teach
 
 
 class TestIndex(unittest.TestCase):
@@ -79,6 +80,21 @@ class TestJudgeWiring(unittest.TestCase):
         self.assertTrue(items[0]["grounded"])
         self.assertEqual(items[0]["source_ids"], ["F1"])
         self.assertEqual(items[0]["sources"][0]["link"], "u1")
+
+
+class TestTeachSources(unittest.TestCase):
+    def test_grounded_prompt_lists_real_sources(self):
+        gap = {"pattern": "p", "current_move": "m", "why": "w",
+               "sources": [{"source": "A", "title": "t1", "link": "u1"}]}
+        p = teach.gap_prompt(gap)
+        self.assertIn("t1", p)
+        self.assertIn("u1", p)
+        self.assertIn("NEVER invent", p)
+
+    def test_ungrounded_prompt_warns_no_fabrication(self):
+        gap = {"pattern": "p", "current_move": "m", "why": "w", "sources": []}
+        p = teach.gap_prompt(gap)
+        self.assertIn("Do NOT invent", p)
 
 
 if __name__ == "__main__":
