@@ -93,3 +93,16 @@ class TestWorstOfN(unittest.TestCase):
         lg.return_value = [{"pattern": "P", "evidence": "", "expect": False, "must": True}]
         jm.side_effect = [[{"pattern": "P", "gap": False}]] * 3
         self.assertEqual(judge_eval.run(3), 0)
+
+    @mock.patch("judge_eval.flt.judge")
+    @mock.patch("judge_eval.load_golden")
+    def test_bad_run_first_still_flagged(self, lg, jm):
+        import judge_eval
+        lg.return_value = [{"pattern": "P", "evidence": "", "expect": False, "must": True}]
+        # failing run is FIRST — a "keep-the-last-run" bug would wrongly certify this
+        jm.side_effect = [
+            [{"pattern": "P", "gap": True}],   # must-case over-flag (fail)
+            [{"pattern": "P", "gap": False}],
+            [{"pattern": "P", "gap": False}],
+        ]
+        self.assertEqual(judge_eval.run(3), 1)
