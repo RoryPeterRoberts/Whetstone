@@ -68,5 +68,18 @@ class TestGround(unittest.TestCase):
         self.assertEqual(gaps[0]["source_ids"], [])
 
 
+class TestJudgeWiring(unittest.TestCase):
+    @mock.patch.object(flt, "call_codex")
+    def test_judge_then_ground_marks_real_citation(self, cc):
+        cc.return_value = ('[{"pattern":"p","gap":true,"current_move":"m","why":"w",'
+                           '"confidence":"high","risk":"quality","source_ids":["F1","F9"]}]')
+        digest, id_map = flt._index([{"source": "A", "title": "t1", "link": "u1"}])
+        items = flt.judge([{"pattern": "p", "n_repos": 1, "evidence": "e"}], frontier=digest)
+        flt.ground(items, id_map)
+        self.assertTrue(items[0]["grounded"])
+        self.assertEqual(items[0]["source_ids"], ["F1"])
+        self.assertEqual(items[0]["sources"][0]["link"], "u1")
+
+
 if __name__ == "__main__":
     unittest.main()

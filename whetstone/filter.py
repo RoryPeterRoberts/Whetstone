@@ -155,8 +155,10 @@ def main():
     if not pats:
         print("no breadcrumbs yet — run breadcrumbs.py <repo> first"); return
 
-    items = judge(pats)
+    digest, id_map = frontier_index()
+    items = judge(pats, frontier=digest)
     gaps = [it for it in items if it.get("gap")]
+    ground(gaps, id_map)
     meta = {p["pattern"]: p for p in pats}
     for g in gaps:
         src = meta.get(g.get("pattern"), {})
@@ -173,7 +175,8 @@ def main():
 
     print(f"{len(pats)} patterns checked · {len(gaps)} gaps (teaching targets)\n")
     for g in gaps:
-        print(f"  [{g.get('risk', '?').upper()} · {g.get('confidence', '?').upper()}] {g['pattern']}")
+        mark = "grounded" if g.get("grounded") else "unverified"
+        print(f"  [{g.get('risk', '?').upper()} · {g.get('confidence', '?').upper()} · {mark}] {g['pattern']}")
         print(f"      → {g.get('current_move', '')}")
         print(f"        {g.get('why', '')}\n")
     print(f"({len(pats) - len(gaps)} already at current best practice — nothing to teach there.)")
