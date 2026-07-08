@@ -94,6 +94,9 @@ header{border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:20p
 .bk .rv{font-family:var(--mono);font-size:11.5px;color:var(--brass-hi);line-height:1.55;margin:3px 0}
 .bk .rv b{color:var(--brass);font-weight:600;font-size:9px;text-transform:uppercase;letter-spacing:.06em;margin-right:6px}
 .bk .rvf{font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:6px}
+.prov{font-family:var(--mono);font-size:9.5px;margin-top:6px;letter-spacing:.03em}
+.prov.grounded{color:var(--brass)}
+.prov.unverified{color:var(--faint)}
 .tip .tools{flex-wrap:wrap}
 .tip .tools [data-alt]{font-size:10px;opacity:.88}
 .tip .tools [data-alt]:hover{opacity:1}
@@ -284,6 +287,9 @@ async function openBank(){
       groups[proj].forEach((it,i)=>{const id=proj+'#'+i;BANKITEMS[id]=it;const rk=(it.risk||'quality').toLowerCase();
         html+='<div class="bk"><div class="bk-h"><span class="risk '+rk+'">'+rk+'</span><span class="c">'+esc(it.pattern||it.concept||'')+'</span></div>'
           +'<div class="d">'+esc(it.direction||'')+'</div>'
+          +((it.grounded&&it.sources&&it.sources.length)
+              ? '<div class="prov grounded">grounded · '+esc(it.sources[0].source||'')+' — '+esc(it.sources[0].title||'')+'</div>'
+              : '<div class="prov unverified">unverified · model knowledge</div>')
           +'<div class="bk-b"><button class="cp" data-id="'+id+'">⎘ copy</button><button class="ex" data-id="'+id+'">explain</button></div></div>';
       });
     });

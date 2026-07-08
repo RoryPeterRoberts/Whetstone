@@ -39,10 +39,11 @@ Rules:
 a technique to DIRECT and JUDGE, not code to hand-write.
 - Rank gaps by leverage: how much it would actually improve their work. Patterns marked "recurs across N of your repos" are higher-leverage — a fix there compounds across projects.
 - Tag each gap's blast radius in "risk": "money" (can cost, charge, or lose money), "data" (can corrupt or lose data), "production" (can break a live system), or "quality" (just better output). Pick the highest that genuinely applies.
+- Cite the frontier item ID(s) that justify each gap in "source_ids" (e.g. ["F3"]). If the gap comes from your own general knowledge and NO listed frontier item supports it, set "source_ids" to []. NEVER invent an ID that is not listed above.
 
 Return ONLY a JSON array, no prose, no fences. One item per pattern:
 {{"pattern": "<their pattern>", "gap": true|false, "current_move": "<the sharper move, short>", \
-"why": "<one concrete line on why it beats what they do>", "confidence": "high|med|low", "risk": "money|data|production|quality"}}"""
+"why": "<one concrete line on why it beats what they do>", "confidence": "high|med|low", "risk": "money|data|production|quality", "source_ids": ["<frontier ids like F3, or [] if none>"]}}"""
 
 
 def call_codex(prompt):
@@ -70,16 +71,42 @@ def parse_json(s):
     return []
 
 
+def _index(items):
+    """Pure: list of frontier item dicts -> (digest with F-ids, id_map)."""
+    digest, id_map = [], {}
+    for i, it in enumerate(items, 1):
+        fid = f"F{i}"
+        id_map[fid] = {"source": it.get("source", ""), "title": it.get("title", ""), "link": it.get("link", "")}
+        digest.append(f"{fid}  [{it.get('source', '')}] {it.get('title', '')}")
+    return ("\n".join(digest) or "(empty)", id_map)
+
+
+def frontier_index(cap=45):
+    """Read frontier.jsonl (up to cap) -> (digest, id_map)."""
+    items = []
+    if FRONTIER.exists():
+        for ln in FRONTIER.read_text().splitlines()[:cap]:
+            try:
+                r = json.loads(ln)
+                if isinstance(r, dict): items.append(r)
+            except Exception: pass
+    if not items:
+        return ("(no live frontier feed yet — using your own recent knowledge)", {})
+    return _index(items)
+
+
 def load_frontier(cap=45):
-    if not FRONTIER.exists():
-        return "(no live frontier feed yet — using your own recent knowledge)"
-    lines = []
-    for ln in FRONTIER.read_text().splitlines()[:cap]:
-        try:
-            r = json.loads(ln); lines.append(f"- [{r.get('source')}] {r.get('title')}")
-        except Exception:
-            pass
-    return "\n".join(lines) or "(empty)"
+    return frontier_index(cap)[0]
+
+
+def ground(gaps, id_map):
+    """Strip fabricated frontier citations; mark grounded + attach the real sources."""
+    for g in gaps:
+        ids = [s for s in (g.get("source_ids") or []) if s in id_map]
+        g["source_ids"] = ids
+        g["grounded"] = bool(ids)
+        g["sources"] = [id_map[s] for s in ids]
+    return gaps
 
 
 def load_breadcrumbs():
@@ -128,8 +155,10 @@ def main():
     if not pats:
         print("no breadcrumbs yet — run breadcrumbs.py <repo> first"); return
 
-    items = judge(pats)
+    digest, id_map = frontier_index()
+    items = judge(pats, frontier=digest)
     gaps = [it for it in items if it.get("gap")]
+    ground(gaps, id_map)
     meta = {p["pattern"]: p for p in pats}
     for g in gaps:
         src = meta.get(g.get("pattern"), {})
@@ -146,7 +175,8 @@ def main():
 
     print(f"{len(pats)} patterns checked · {len(gaps)} gaps (teaching targets)\n")
     for g in gaps:
-        print(f"  [{g.get('risk', '?').upper()} · {g.get('confidence', '?').upper()}] {g['pattern']}")
+        mark = "grounded" if g.get("grounded") else "unverified"
+        print(f"  [{g.get('risk', '?').upper()} · {g.get('confidence', '?').upper()} · {mark}] {g['pattern']}")
         print(f"      → {g.get('current_move', '')}")
         print(f"        {g.get('why', '')}\n")
     print(f"({len(pats) - len(gaps)} already at current best practice — nothing to teach there.)")

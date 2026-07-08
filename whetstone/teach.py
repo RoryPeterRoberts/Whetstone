@@ -20,6 +20,16 @@ GATE = ("Whetstone flagged this from my git history — verify before acting. Pr
         "plan — don't edit yet. If you don't, tell me why.")
 
 
+def _sources_block(gap):
+    srcs = gap.get("sources") or []
+    if srcs:
+        lines = "\n".join(f"- {s.get('source', '')}: {s.get('title', '')} ({s.get('link', '')})" for s in srcs)
+        return ("This gap is grounded in these REAL frontier sources — reference them by name where it helps, "
+                "and NEVER invent a paper, citation, or URL beyond these:\n" + lines + "\n\n")
+    return ("This gap is from general practice, not a cited live source. Do NOT invent any paper, citation, "
+            "or URL — present it as general best practice.\n\n")
+
+
 def gap_prompt(gap):
     return (
         f"{teacher.METHOD}\n\n---\n"
@@ -28,6 +38,7 @@ def gap_prompt(gap):
         f"They already do: {gap.get('pattern')}.\n"
         f"The sharper current move: {gap.get('current_move')}.\n"
         f"Why it beats theirs: {gap.get('why')}.\n\n"
+        + _sources_block(gap) +
         "Write the lesson, anchored to their real work:\n"
         "1. Gate — why they need this, plain (they hold the veto).\n"
         "2. Analogy — under 30 words.\n"
@@ -57,7 +68,8 @@ def teach_gap(gap, bank=True):
         "concept": gap.get("pattern", ""), "risk": gap.get("risk", "quality"),
         "direction": direction, "gated": GATE.format(d=direction) if direction else "",
         "principle": principle, "tell": tell, "why": gap.get("why", ""),
-        "current_move": gap.get("current_move", ""), "evidence": gap.get("evidence", ""), "source": "whet",
+        "current_move": gap.get("current_move", ""), "grounded": gap.get("grounded", False), "sources": gap.get("sources", []),
+        "evidence": gap.get("evidence", ""), "source": "whet",
     }
     if bank and direction:
         existing = {r.get("direction") for r in teacher.read_jsonl(teacher.BANK)}
