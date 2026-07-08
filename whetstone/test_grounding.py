@@ -2,6 +2,7 @@ import unittest
 from unittest import mock
 import filter as flt
 import teach
+import teacher
 
 
 class TestIndex(unittest.TestCase):
@@ -95,6 +96,29 @@ class TestTeachSources(unittest.TestCase):
         gap = {"pattern": "p", "current_move": "m", "why": "w", "sources": []}
         p = teach.gap_prompt(gap)
         self.assertIn("Do NOT invent", p)
+
+
+class TestTeachGapBank(unittest.TestCase):
+    @mock.patch.object(teacher, "call_codex")
+    def test_teach_gap_banks_provenance(self, cc):
+        import tempfile, pathlib, json
+        cc.return_value = "DIRECTION: do X\nPRINCIPLE: rule Y\nTELL: tell Z\nWHY: because"
+        gap = {"project": "proj", "pattern": "p", "current_move": "m", "why": "w",
+               "risk": "quality", "grounded": True,
+               "sources": [{"source": "A", "title": "t", "link": "u"}]}
+        with tempfile.NamedTemporaryFile("w", suffix=".jsonl", delete=False) as f:
+            tmp_bank = f.name
+        orig_bank, orig_taught = teacher.BANK, teach.TAUGHT
+        teacher.BANK = pathlib.Path(tmp_bank)
+        teach.TAUGHT = pathlib.Path(tmp_bank + ".taught")
+        try:
+            teach.teach_gap(gap)
+            entry = json.loads(pathlib.Path(tmp_bank).read_text().splitlines()[-1])
+            self.assertTrue(entry["grounded"] is True)
+            self.assertEqual(entry["sources"], [{"source": "A", "title": "t", "link": "u"}])
+        finally:
+            teacher.BANK = orig_bank
+            teach.TAUGHT = orig_taught
 
 
 if __name__ == "__main__":
