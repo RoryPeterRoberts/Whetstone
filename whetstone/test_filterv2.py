@@ -56,3 +56,17 @@ class TestCanon(unittest.TestCase):
 
     def test_empty_input(self):
         self.assertEqual(canon.canonicalize([]), {})
+
+
+class TestPromptV2(unittest.TestCase):
+    def test_not_a_gap_anchors_present(self):
+        self.assertIn("NOT gaps", flt.PROMPT)
+        self.assertIn("type hints", flt.PROMPT)
+
+    def test_deficiency_rule_present(self):
+        self.assertIn("specifically lacks", flt.PROMPT)
+        self.assertIn("not merely that the topic", flt.PROMPT)
+
+    def test_prompt_still_formats(self):
+        # the added rules must not break the .format() placeholders
+        flt.PROMPT.format(patterns="p", frontier="f")

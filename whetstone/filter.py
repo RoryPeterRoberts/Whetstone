@@ -40,6 +40,8 @@ a technique to DIRECT and JUDGE, not code to hand-write.
 - Rank gaps by leverage: how much it would actually improve their work. Patterns marked "recurs across N of your repos" are higher-leverage — a fix there compounds across projects.
 - Tag each gap's blast radius in "risk": "money" (can cost, charge, or lose money), "data" (can corrupt or lose data), "production" (can break a live system), or "quality" (just better output). Pick the highest that genuinely applies.
 - Cite the frontier item ID(s) that justify each gap in "source_ids" (e.g. ["F3"]). If the gap comes from your own general knowledge and NO listed frontier item supports it, set "source_ids" to []. NEVER invent an ID that is not listed above.
+- These are NOT gaps — set gap=false and do not manufacture a sharper move: writing type hints or docstrings, using simple f-string prompt templates, or any practice that is already current best practice or baseline hygiene.
+- A gap must name what the developer's CURRENT practice specifically lacks versus a sharper move — not merely that the topic is active on the frontier. A pattern being widely discussed now is not evidence that their way of doing it is behind.
 
 Return ONLY a JSON array, no prose, no fences. One item per pattern:
 {{"pattern": "<their pattern>", "gap": true|false, "current_move": "<the sharper move, short>", \
