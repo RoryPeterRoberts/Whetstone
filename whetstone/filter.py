@@ -10,7 +10,7 @@ live sources (SOURCES.md) later, so "current" can't drift back to legacy.
 
     python filter.py            # filter breadcrumbs.jsonl -> gaps.jsonl
 """
-import json, os, shutil, subprocess, tempfile, time
+import json, os, shutil, subprocess, sys, tempfile, time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -37,7 +37,7 @@ Rules:
 - If they are already doing it the current best way, set gap=false. Be STRICT; expect most to be false.
 - The better move must be current and trustworthy, and useful to someone who COMMANDS a coding agent — \
 a technique to DIRECT and JUDGE, not code to hand-write.
-- Rank gaps by leverage: how much it would actually improve their work.
+- Rank gaps by leverage: how much it would actually improve their work. Patterns marked "recurs across N of your repos" are higher-leverage — a fix there compounds across projects.
 
 Return ONLY a JSON array, no prose, no fences. One item per pattern:
 {{"pattern": "<their pattern>", "gap": true|false, "current_move": "<the sharper move, short>", \
@@ -81,26 +81,45 @@ def load_frontier(cap=45):
     return "\n".join(lines) or "(empty)"
 
 
-def load_patterns():
+def load_breadcrumbs():
+    rows = []
+    if BREADCRUMBS.exists():
+        for ln in BREADCRUMBS.read_text().splitlines():
+            try: rows.append(json.loads(ln))
+            except Exception: pass
+    return rows
+
+
+def select(rows, target):
+    """Unique patterns; if a target repo is given, focus on its patterns. Each pattern is
+    annotated with how many distinct repos it recurs in — the recurrence (compounding) signal."""
+    repos_of = {}
+    for r in rows:
+        repos_of.setdefault(r.get("pattern"), set()).add(r.get("repo"))
     seen, out = set(), []
-    if not BREADCRUMBS.exists():
-        return out
-    for ln in BREADCRUMBS.read_text().splitlines():
-        try:
-            r = json.loads(ln)
-        except Exception:
-            continue
+    for r in rows:
         p = r.get("pattern")
-        if p and p not in seen:
-            seen.add(p); out.append(r)
+        if not p or p in seen:
+            continue
+        if target and r.get("repo") != target:
+            continue
+        seen.add(p)
+        out.append({**r, "n_repos": len(repos_of.get(p, set()))})
     return out
 
 
 def main():
-    pats = load_patterns()
+    target = sys.argv[1] if len(sys.argv) > 1 else None
+    rows = load_breadcrumbs()
+    pats = select(rows, target) or select(rows, None)
     if not pats:
         print("no breadcrumbs yet — run breadcrumbs.py <repo> first"); return
-    listing = "\n".join(f"- {p['pattern']} — {p.get('evidence', '')}" for p in pats)
+
+    def fmt(p):
+        rec = f" (recurs across {p['n_repos']} of your repos)" if p.get("n_repos", 1) > 1 else ""
+        return f"- {p['pattern']}{rec} — {p.get('evidence', '')}"
+
+    listing = "\n".join(fmt(p) for p in pats)
     items = parse_json(call_codex(PROMPT.format(patterns=listing, frontier=load_frontier())))
     gaps = [it for it in items if it.get("gap")]
     order = {"high": 0, "med": 1, "low": 2}

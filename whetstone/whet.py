@@ -21,7 +21,7 @@ def learn(repo, n=14, top=3):
     print(f"\n▶ 1/4  reading what you build in {repo} …")
     _run("breadcrumbs.py", repo, n)
     print("\n▶ 2/4  finding the gaps vs current best practice …")
-    _run("filter.py")
+    _run("filter.py", Path(repo).name)
     print("\n▶ 3/4  teaching the top gaps + banking the commands …\n")
     import teach
     gaps = teach.load_gaps()[:int(top)]
