@@ -98,6 +98,16 @@ def load_frontier(cap=45):
     return frontier_index(cap)[0]
 
 
+def ground(gaps, id_map):
+    """Strip fabricated frontier citations; mark grounded + attach the real sources."""
+    for g in gaps:
+        ids = [s for s in (g.get("source_ids") or []) if s in id_map]
+        g["source_ids"] = ids
+        g["grounded"] = bool(ids)
+        g["sources"] = [id_map[s] for s in ids]
+    return gaps
+
+
 def load_breadcrumbs():
     rows = []
     if BREADCRUMBS.exists():

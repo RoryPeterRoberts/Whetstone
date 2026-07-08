@@ -32,5 +32,35 @@ class TestIndex(unittest.TestCase):
             flt.FRONTIER = orig
 
 
+class TestGround(unittest.TestCase):
+    def setUp(self):
+        self.id_map = {"F1": {"source": "A", "title": "t1", "link": "u1"}}
+
+    def test_strips_fabricated(self):
+        gaps = [{"source_ids": ["F1", "F99"]}]
+        flt.ground(gaps, self.id_map)
+        self.assertEqual(gaps[0]["source_ids"], ["F1"])
+        self.assertTrue(gaps[0]["grounded"])
+        self.assertEqual(gaps[0]["sources"][0]["title"], "t1")
+
+    def test_all_fabricated_is_unverified(self):
+        gaps = [{"source_ids": ["F99"]}]
+        flt.ground(gaps, self.id_map)
+        self.assertEqual(gaps[0]["source_ids"], [])
+        self.assertFalse(gaps[0]["grounded"])
+        self.assertEqual(gaps[0]["sources"], [])
+
+    def test_empty_is_allowed(self):
+        gaps = [{"source_ids": []}]
+        flt.ground(gaps, self.id_map)
+        self.assertFalse(gaps[0]["grounded"])
+
+    def test_missing_key_is_allowed(self):
+        gaps = [{"pattern": "p"}]
+        flt.ground(gaps, self.id_map)
+        self.assertFalse(gaps[0]["grounded"])
+        self.assertEqual(gaps[0]["source_ids"], [])
+
+
 if __name__ == "__main__":
     unittest.main()
