@@ -39,11 +39,9 @@ Prerequisites: Python 3.10+, git, and an installed and authenticated [Codex CLI]
 git clone https://github.com/RoryPeterRoberts/Whetstone.git
 cd Whetstone
 
-# Refresh the curated frontier snapshot
-python whetstone/whet.py watch
-
-# Analyse one of your git repositories and teach up to three gaps
-python whetstone/whet.py learn ~/your-project 14 3
+# Before a build: refresh the frontier, analyse your existing patterns,
+# and teach up to three relevant gaps
+python whetstone/whet.py prepare ~/your-project 14 3
 
 # Open the local learning surface
 WHETSTONE_LEARNER="Your name" python whetstone/teacher.py
@@ -54,7 +52,7 @@ Runtime observations, profiles, lessons, and run ledgers are local JSONL files i
 
 ## What to expect
 
-Whetstone reads recent code history, compares recurring LLM-building patterns with its current frontier snapshot, and banks only the gaps that survive the filter. Treat every finding as a proposal: inspect its evidence and use the evaluate-first command before changing production code.
+Whetstone’s `prepare` command refreshes the curated frontier before the build, then reads recent code history, compares recurring LLM-building patterns with its current frontier snapshot, and banks only the gaps that survive the filter. Treat every finding as a proposal: inspect its evidence and use the evaluate-first command before changing production code.
 
 ## License
 

@@ -16,11 +16,11 @@ Whetstone (a separate tool, model = Codex / gpt-5.5) does the **finding**. You (
 - `WHETSTONE_HOME` = `$WHETSTONE_HOME` if set, else `~/JOBS/Whetstone/whetstone`. `codex` must be on `PATH`.
 
 ## 1. Find the gaps (independent finder)
-Run Whetstone's learn loop on the repo (writes into `WHETSTONE_HOME`):
+Run Whetstone’s pre-build loop on the repo (writes into `WHETSTONE_HOME`):
 ```
-python3 "$WHETSTONE_HOME/whet.py" learn <repo>
+python3 "$WHETSTONE_HOME/whet.py" prepare <repo>
 ```
-It reads the repo's git history, infers the LLM-building patterns it uses, judges each against the live frontier, risk-ranks the gaps (money / data / production / quality), and writes them to `gaps.jsonl` with a copy-paste DIRECTION per gap.
+It refreshes the curated frontier first, then reads the repo’s git history, infers the LLM-building patterns it uses, judges each against the live frontier, risk-ranks the gaps (money / data / production / quality), and writes them to `gaps.jsonl` with a copy-paste DIRECTION per gap.
 
 If Whetstone is not installed or Codex is unavailable, **fall back to a native find**: read the repo's recent `git log` and its key files yourself and identify the single sharpest, nameable gap vs current best practice. Say plainly that you used the native fallback (no independent finder — your review is on your own suggestion, so weigh it harder).
 
