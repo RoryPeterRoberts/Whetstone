@@ -77,12 +77,14 @@ def call_codex(repo, prompt):
         try:
             with open(prompt_file.name, encoding="utf-8") as stdin:
                 subprocess.run(
-                    [CODEX, "exec", *sandbox_args, "--skip-git-repo-check", "-o", output, "-"],
+                    [CODEX, "exec", *sandbox_args,
+                     "-c", 'model_reasoning_effort="low"',  # verification is a lookup, not deep reasoning
+                     "--skip-git-repo-check", "-o", output, "-"],
                     cwd=repo,
                     stdin=stdin,
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
-                    timeout=300,
+                    timeout=600,  # agentic file exploration on a large repo needs headroom
                     check=True,
                 )
             return Path(output).read_text(encoding="utf-8").strip()
