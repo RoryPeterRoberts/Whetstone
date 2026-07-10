@@ -10,6 +10,7 @@ this so "current" is genuinely current, not the model's memory. Page-diff source
 """
 import json, sys, time, urllib.request, xml.etree.ElementTree as ET
 from pathlib import Path
+import runs
 
 ROOT = Path(__file__).resolve().parent
 FRONTIER = ROOT / "frontier.jsonl"
@@ -79,9 +80,9 @@ def main():
         except Exception as e:
             print(f"  --  {name}: {type(e).__name__}")
             fail += 1
-    with open(FRONTIER, "w") as fh:
-        for it in all_items:
-            fh.write(json.dumps(it) + "\n")
+    if not all_items:
+        raise RuntimeError("every frontier feed failed; preserving the last known-good snapshot")
+    runs.replace_jsonl(FRONTIER, all_items)
     print(f"\nfrontier.jsonl: {len(all_items)} items from {ok}/{len(FEEDS)} feeds ({fail} failed)")
 
 

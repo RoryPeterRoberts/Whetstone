@@ -69,7 +69,7 @@ def teach_gap(gap, bank=True):
         "direction": direction, "gated": GATE.format(d=direction) if direction else "",
         "principle": principle, "tell": tell, "why": gap.get("why", ""),
         "current_move": gap.get("current_move", ""), "grounded": gap.get("grounded", False), "sources": gap.get("sources", []),
-        "evidence": gap.get("evidence", ""), "source": "whet",
+        "evidence": gap.get("evidence", ""), "source": "whet", "run_id": gap.get("run_id", ""),
     }
     if bank and direction:
         existing = {r.get("direction") for r in teacher.read_jsonl(teacher.BANK)}
@@ -85,21 +85,28 @@ def load_gaps():
     return teacher.read_jsonl(GAPS)
 
 
-def close_loop(project):
-    """Any gap previously taught for this project that the filter no longer flags = applied. Mark it done.
-    Heuristic: relies on the gap dropping out of the fresh filter run for this project."""
+def mark_needs_verification(project):
+    """Mark missing findings as uncertain, never as applied.
+
+    An LLM judge omitting a gap is not evidence that code changed. Application must
+    be confirmed against a diff or an explicit review later.
+    """
     rows = teacher.read_jsonl(TAUGHT)
     open_here = {t["pattern"] for t in rows if t.get("project") == project and t.get("status") == "open"}
     current = {g.get("pattern") for g in load_gaps()}
-    resolved = sorted(open_here - current)
-    if resolved:
+    uncertain = sorted(open_here - current)
+    if uncertain:
         for t in rows:
-            if t.get("project") == project and t.get("pattern") in resolved and t.get("status") == "open":
-                t["status"] = "done"; t["closed_ts"] = int(time.time())
-        with open(TAUGHT, "w") as f:
-            for t in rows:
-                f.write(json.dumps(t) + "\n")
-    return resolved
+            if t.get("project") == project and t.get("pattern") in uncertain and t.get("status") == "open":
+                t["status"] = "needs_verification"; t["verification_ts"] = int(time.time())
+        import runs
+        runs.replace_jsonl(TAUGHT, rows)
+    return uncertain
+
+
+def close_loop(project):
+    """Backward-compatible name; absence now means verification required."""
+    return mark_needs_verification(project)
 
 
 def main():

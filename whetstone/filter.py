@@ -12,6 +12,7 @@ live sources (SOURCES.md) later, so "current" can't drift back to legacy.
 """
 import json, os, shutil, subprocess, sys, tempfile, time
 from pathlib import Path
+import runs
 
 ROOT = Path(__file__).resolve().parent
 BREADCRUMBS = ROOT / "breadcrumbs.jsonl"
@@ -159,9 +160,10 @@ def main():
     rows = load_breadcrumbs()
     import canon
     cmap = canon.canonicalize([r.get("pattern") for r in rows if r.get("pattern")])
-    pats = select(rows, target, cmap) or select(rows, None, cmap)
+    pats = select(rows, target, cmap) if target else select(rows, None, cmap)
     if not pats:
-        print("no breadcrumbs yet — run breadcrumbs.py <repo> first"); return
+        runs.replace_jsonl(GAPS, [])
+        print("no breadcrumbs for this target — run breadcrumbs.py <repo> first"); return
 
     digest, id_map = frontier_index()
     items = judge(pats, frontier=digest)
@@ -177,9 +179,9 @@ def main():
     risk = {"money": 0, "data": 1, "production": 2, "quality": 3}
     gaps.sort(key=lambda g: (risk.get(g.get("risk", "quality"), 4), conf.get(g.get("confidence", "low"), 3)))
 
-    with open(GAPS, "w") as f:
-        for g in gaps:
-            f.write(json.dumps({"ts": int(time.time()), **g}) + "\n")
+    run_id = os.environ.get("WHETSTONE_RUN_ID", "")
+    records = [{"ts": int(time.time()), "run_id": run_id, **g} for g in gaps]
+    runs.replace_jsonl(GAPS, records)
 
     print(f"{len(pats)} patterns checked · {len(gaps)} gaps (teaching targets)\n")
     for g in gaps:
