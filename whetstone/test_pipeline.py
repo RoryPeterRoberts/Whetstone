@@ -16,6 +16,13 @@ class TestEvidencePipeline(unittest.TestCase):
         rows = [{"repo": "other", "pattern": "tool calling", "evidence": "x"}]
         self.assertEqual(flt.select(rows, "target", {}), [])
 
+    def test_codex_defaults_are_visible(self):
+        with tempfile.TemporaryDirectory() as td:
+            config = pathlib.Path(td) / "config.toml"
+            config.write_text('model = "gpt-test"\nmodel_reasoning_effort = "high"\n')
+            self.assertEqual(whet.codex_defaults(config), {
+                "runtime": "Codex CLI", "model": "gpt-test", "reasoning_effort": "high"})
+
     def test_atomic_snapshot(self):
         with tempfile.TemporaryDirectory() as td:
             path = pathlib.Path(td) / "items.jsonl"

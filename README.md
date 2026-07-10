@@ -33,7 +33,7 @@ Working research prototype: the complete evidence-bearing loop runs locally on o
 
 ## Five-minute quickstart
 
-Prerequisites: Python 3.10+, git, and an installed and authenticated [Codex CLI](https://github.com/openai/codex). Whetstone otherwise uses only the Python standard library.
+Prerequisites: Python 3.11+, git, and an installed and authenticated [Codex CLI](https://github.com/openai/codex). Whetstone otherwise uses only the Python standard library.
 
 ```bash
 git clone https://github.com/RoryPeterRoberts/Whetstone.git
@@ -48,7 +48,11 @@ WHETSTONE_LEARNER="Your name" python whetstone/teacher.py
 # Visit http://localhost:8099
 ```
 
-Runtime observations, profiles, lessons, and run ledgers are local JSONL files ignored by git. Set `WHETSTONE_LEARNER` to personalize the teacher; it defaults to `Builder`.
+Runtime observations, profiles, lessons, and run ledgers are local JSONL files ignored by git. The `prepare` command prints and each run records the Codex model and reasoning effort inherited from the builder’s local `~/.codex/config.toml`; Whetstone does not invoke the models used by the target repository. Set `WHETSTONE_LEARNER` to personalize the teacher; it defaults to `Builder`.
+
+## Model and data flow
+
+The frontier refresh is ordinary RSS/Atom fetching; it uses no model. Pattern inference, canonicalization, gap judgment, and lesson generation run through the builder’s authenticated Codex CLI. Whetstone inherits that user’s configured Codex model and reasoning effort, prints them before `prepare`, and records them with the run. Target-repository models—Gemini, Claude, local models, or others—are inspected as code patterns but are not invoked.
 
 ## What to expect
 
