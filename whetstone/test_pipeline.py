@@ -46,6 +46,21 @@ class TestEvidencePipeline(unittest.TestCase):
         self.assertEqual(record["status"], "failed")
         self.assertEqual(record["stages"][-1]["status"], "failed")
 
+    @mock.patch.object(whet, "learn", return_value={"status": "complete"})
+    @mock.patch.object(whet, "_run")
+    def test_prepare_refreshes_frontier_before_learning(self, run, learn):
+        result = whet.prepare("/repo", 9, 2)
+        run.assert_called_once_with("watch.py")
+        learn.assert_called_once_with("/repo", 9, 2, frontier_refreshed=True)
+        self.assertEqual(result["status"], "complete")
+
+    @mock.patch.object(whet, "learn")
+    @mock.patch.object(whet, "_run", side_effect=RuntimeError("frontier unavailable"))
+    def test_prepare_stops_if_frontier_refresh_fails(self, _run, learn):
+        with self.assertRaises(RuntimeError):
+            whet.prepare("/repo")
+        learn.assert_not_called()
+
     def test_disappearing_gap_requires_verification(self):
         with tempfile.TemporaryDirectory() as td:
             taught = pathlib.Path(td) / "taught.jsonl"
