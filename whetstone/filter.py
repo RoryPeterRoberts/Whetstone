@@ -13,10 +13,12 @@ live sources (SOURCES.md) later, so "current" can't drift back to legacy.
 import json, os, shutil, subprocess, sys, tempfile, time
 from pathlib import Path
 import runs
+import validation
 
 ROOT = Path(__file__).resolve().parent
 BREADCRUMBS = ROOT / "breadcrumbs.jsonl"
 GAPS = ROOT / "gaps.jsonl"
+FINDINGS = ROOT / "findings.jsonl"
 FRONTIER = ROOT / "frontier.jsonl"
 CODEX = os.environ.get("CODEX_BIN") or shutil.which("codex") or os.path.expanduser("~/.local/bin/codex")
 
@@ -156,40 +158,101 @@ def judge(pats, frontier=None):
 
 
 def main():
-    target = sys.argv[1] if len(sys.argv) > 1 else None
+    target_arg = sys.argv[1] if len(sys.argv) > 1 else None
+    target = Path(target_arg).name if target_arg else None
+    repo_arg = os.environ.get("WHETSTONE_REPO") or target_arg
+    candidate = Path(repo_arg).expanduser() if repo_arg else None
+    repo = candidate.resolve() if candidate and candidate.is_dir() else None
     rows = load_breadcrumbs()
     import canon
     cmap = canon.canonicalize([r.get("pattern") for r in rows if r.get("pattern")])
     pats = select(rows, target, cmap) if target else select(rows, None, cmap)
     if not pats:
         runs.replace_jsonl(GAPS, [])
+        runs.replace_jsonl(FINDINGS, [])
         print("no breadcrumbs for this target — run breadcrumbs.py <repo> first"); return
 
     digest, id_map = frontier_index()
     items = judge(pats, frontier=digest)
-    gaps = [it for it in items if it.get("gap")]
-    ground(gaps, id_map)
+    proposals = [it for it in items if it.get("gap")]
+    ground(proposals, id_map)
     meta = {p["pattern"]: p for p in pats}
-    for g in gaps:
+    for g in proposals:
         src = meta.get(g.get("pattern"), {})
         g["project"] = target or src.get("repo", "")
         g["evidence"] = src.get("evidence", "")
+        g["commit"] = src.get("commit", "")
         g["n_repos"] = src.get("n_repos", 1)
+
+    validations = validation.validate(proposals, repo)
+    for finding, result in zip(proposals, validations):
+        finding["proposal_id"] = result["proposal_id"]
+        finding["classification"] = result["classification"]
+        finding["validation_reason"] = result["reason"]
+        finding["repository_evidence"] = result["repository_evidence"]
+        finding["rejected_repository_evidence"] = result["rejected_repository_evidence"]
+        finding["evidence_chain"] = {
+            "history": {
+                "evidence": finding.get("evidence", ""),
+                "commit": finding.get("commit", ""),
+            },
+            "frontier": {
+                "grounded": finding.get("grounded", False),
+                "source_ids": finding.get("source_ids", []),
+                "sources": finding.get("sources", []),
+            },
+            "repository": {
+                "classification": result["classification"],
+                "reason": result["reason"],
+                "state": result["repository"],
+                "evidence": result["repository_evidence"],
+                "rejected_evidence": result["rejected_repository_evidence"],
+            },
+        }
+        finding["evidence_rank"] = validation.evidence_tier(finding)
     conf = {"high": 0, "med": 1, "low": 2}
     risk = {"money": 0, "data": 1, "production": 2, "quality": 3}
-    gaps.sort(key=lambda g: (risk.get(g.get("risk", "quality"), 4), conf.get(g.get("confidence", "low"), 3)))
+    proposals.sort(key=lambda g: (
+        g["evidence_rank"],
+        risk.get(g.get("risk", "quality"), 4),
+        conf.get(g.get("confidence", "low"), 3),
+    ))
+    gaps = [g for g in proposals if g.get("classification") in validation.ACTIONABLE]
 
     run_id = os.environ.get("WHETSTONE_RUN_ID", "")
-    records = [{"ts": int(time.time()), "run_id": run_id, **g} for g in gaps]
+    now = int(time.time())
+    findings = [{"ts": now, "run_id": run_id, **g} for g in proposals]
+    records = [{"ts": now, "run_id": run_id, **g} for g in gaps]
+    runs.replace_jsonl(FINDINGS, findings)
     runs.replace_jsonl(GAPS, records)
 
-    print(f"{len(pats)} patterns checked · {len(gaps)} gaps (teaching targets)\n")
-    for g in gaps:
-        mark = "grounded" if g.get("grounded") else "unverified"
-        print(f"  [{g.get('risk', '?').upper()} · {g.get('confidence', '?').upper()} · {mark}] {g['pattern']}")
+    print(f"{len(pats)} patterns checked · {len(proposals)} proposed · "
+          f"{len(gaps)} validated teaching targets\n")
+    for g in proposals:
+        frontier_mark = "frontier-grounded" if g.get("grounded") else "frontier-unverified"
+        print(f"  [{g.get('classification', '?').upper()} · {frontier_mark} · "
+              f"rank {g['evidence_rank']}] {g['pattern']}")
         print(f"      → {g.get('current_move', '')}")
-        print(f"        {g.get('why', '')}\n")
-    print(f"({len(pats) - len(gaps)} already at current best practice — nothing to teach there.)")
+        print(f"        proposal: {g.get('why', '')}")
+        history = g["evidence_chain"]["history"]
+        commit = f" @ {history.get('commit')}" if history.get("commit") else ""
+        print(f"        history: {history.get('evidence') or '(none)'}{commit}")
+        sources = g["evidence_chain"]["frontier"]["sources"]
+        if sources:
+            for source in sources:
+                print(f"        frontier: {source.get('source', '')} — {source.get('title', '')} "
+                      f"({source.get('link', '')})")
+        else:
+            print("        frontier: no verified live source")
+        print(f"        repository: {g.get('validation_reason', '')}")
+        for evidence in g.get("repository_evidence", []):
+            print(f"          {evidence['path']}:{evidence['line_start']}-{evidence['line_end']} "
+                  f"[{evidence.get('supports', 'context')}]")
+        print()
+    handled = sum(g.get("classification") == "already-handled" for g in proposals)
+    insufficient = sum(g.get("classification") == "insufficient-evidence" for g in proposals)
+    print(f"({handled} already handled · {insufficient} insufficient evidence · "
+          f"{len(pats) - len(proposals)} judged not to be gaps.)")
 
 
 if __name__ == "__main__":

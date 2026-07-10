@@ -30,6 +30,19 @@ def _sources_block(gap):
             "or URL — present it as general best practice.\n\n")
 
 
+def _repository_block(gap):
+    evidence = gap.get("repository_evidence") or []
+    lines = "\n".join(
+        f"- {item.get('path', '')}:{item.get('line_start', '')}-{item.get('line_end', '')} "
+        f"[{item.get('supports', 'context')}]:\n{item.get('excerpt', '')}"
+        for item in evidence
+    )
+    return (
+        f"Repository validation: {gap.get('classification', 'insufficient-evidence')} — "
+        f"{gap.get('validation_reason', '')}\n{lines}\n\n"
+    )
+
+
 def gap_prompt(gap):
     return (
         f"{teacher.METHOD}\n\n---\n"
@@ -39,6 +52,7 @@ def gap_prompt(gap):
         f"The sharper current move: {gap.get('current_move')}.\n"
         f"Why it beats theirs: {gap.get('why')}.\n\n"
         + _sources_block(gap) +
+        _repository_block(gap) +
         "Write the lesson, anchored to their real work:\n"
         "1. Gate — why they need this, plain (they hold the veto).\n"
         "2. Analogy — under 30 words.\n"
@@ -69,7 +83,9 @@ def teach_gap(gap, bank=True):
         "direction": direction, "gated": GATE.format(d=direction) if direction else "",
         "principle": principle, "tell": tell, "why": gap.get("why", ""),
         "current_move": gap.get("current_move", ""), "grounded": gap.get("grounded", False), "sources": gap.get("sources", []),
-        "evidence": gap.get("evidence", ""), "source": "whet", "run_id": gap.get("run_id", ""),
+        "evidence": gap.get("evidence", ""), "classification": gap.get("classification", ""),
+        "validation_reason": gap.get("validation_reason", ""), "evidence_chain": gap.get("evidence_chain", {}),
+        "repository_evidence": gap.get("repository_evidence", []), "source": "whet", "run_id": gap.get("run_id", ""),
     }
     if bank and direction:
         existing = {r.get("direction") for r in teacher.read_jsonl(teacher.BANK)}
