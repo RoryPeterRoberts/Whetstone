@@ -3,6 +3,7 @@
 import os
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 import runs
@@ -16,6 +17,22 @@ def _run(script, *args, env=None):
                           env={**os.environ, **(env or {})})
 
 
+def codex_defaults(config_path=None):
+    """Return the Codex defaults Whetstone inherits from the local CLI."""
+    path = Path(config_path or os.environ.get("CODEX_HOME", Path.home() / ".codex"))
+    if path.is_dir():
+        path = path / "config.toml"
+    try:
+        config = tomllib.loads(path.read_text())
+    except (OSError, tomllib.TOMLDecodeError):
+        config = {}
+    return {
+        "runtime": "Codex CLI",
+        "model": config.get("model", "Codex account default"),
+        "reasoning_effort": config.get("model_reasoning_effort", "Codex account default"),
+    }
+
+
 def _head(repo):
     result = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"],
                             capture_output=True, text=True, check=True)
@@ -27,6 +44,7 @@ def learn(repo, n=14, top=3, frontier_refreshed=False):
     if not repo.is_dir():
         raise ValueError(f"repository does not exist: {repo}")
     run = runs.new(repo, _head(repo))
+    run["engine"] = codex_defaults()
     env = {"WHETSTONE_RUN_ID": run["run_id"], "WHETSTONE_REPO": str(repo)}
     try:
         if frontier_refreshed:
@@ -68,7 +86,9 @@ def learn(repo, n=14, top=3, frontier_refreshed=False):
 
 def prepare(repo, n=14, top=3):
     """Refresh the frontier, then run the evidence pipeline before a build."""
-    print("\n▶ pre-build  refreshing the live frontier …")
+    engine = codex_defaults()
+    print(f"\nCodex engine: {engine['model']} · reasoning {engine['reasoning_effort']}")
+    print("▶ pre-build  refreshing the live frontier …")
     _run("watch.py")
     return learn(repo, n, top, frontier_refreshed=True)
 

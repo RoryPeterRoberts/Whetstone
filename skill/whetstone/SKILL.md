@@ -8,7 +8,7 @@ user-invocable: true
 
 You find and apply the sharpest gap between how a repo is built and how the frontier now builds. But the point of this skill is the **safety**: a proposed change is reviewed against the real code before anything is touched, and you refuse changes you disagree with. **You are the gate.**
 
-Whetstone (a separate tool, model = Codex / gpt-5.5) does the **finding**. You (the Claude Code agent) do the **reviewing and implementing**. That split is deliberate — you are judging *another model's* proposal, not your own, so your review has teeth.
+Whetstone (a separate tool using the builder’s authenticated Codex CLI and configured model) does the **finding**. You (the Claude Code agent) do the **reviewing and implementing**. That split is deliberate — you are judging *another model's* proposal, not your own, so your review has teeth.
 
 ## 0. Scope the target
 - Target repo = the argument if given, else the current working directory.
