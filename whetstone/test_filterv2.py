@@ -48,11 +48,12 @@ class TestCanon(unittest.TestCase):
         self.assertEqual(m2["structured JSON output"], "structured-output-contract")
 
     @mock.patch("canon.call_codex")
-    def test_proposes_and_appends_new_canon(self, cc):
+    def test_proposes_new_canon_without_mutating_seed(self, cc):
         cc.return_value = '{"some novel trick": "novel-trick"}'
+        before = canon.CANON.read_text()
         m = canon.canonicalize(["some novel trick"])
         self.assertEqual(m["some novel trick"], "novel-trick")
-        self.assertIn("novel-trick", {c["id"] for c in canon.load_canon()})
+        self.assertEqual(canon.CANON.read_text(), before)
 
     def test_empty_input(self):
         self.assertEqual(canon.canonicalize([]), {})

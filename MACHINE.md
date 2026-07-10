@@ -17,7 +17,8 @@ the build ships the app; the skim builds *you*. (Visual one-pager: `machine.html
 5. **Bank** — two ledgers compound, anchored to the real task that summoned them:
    - **Head** (the scaffold / atlas): the **principle** — derived, understood, sticky. *why = when.* Few, transferable.
    - **Repo** (the cheat sheet / command bank): the **command** — banked, reused, never in your head.
-6. **Loop** — the next build starts from a higher floor. The atlas grows. This is the compounding.
+6. **Proof** — each run records repo + commit + stage outcomes; only a complete run may teach. A gap disappearing becomes “needs verification,” never “applied,” until a diff or explicit review proves it.
+7. **Loop** — the next build starts from a higher floor. The atlas grows. This is the compounding.
 
 ## The filter — the selection function
 > **Teach the recurring gap between how you build and how the frontier now builds.**

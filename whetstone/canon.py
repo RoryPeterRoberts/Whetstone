@@ -4,7 +4,7 @@
 Free-text breadcrumb pattern names ("structured JSON output" vs "schema-constrained
 outputs") describe the same habit differently, so recurrence across repos never
 accumulates. This maps each free-text pattern to a STABLE canonical id: seeded in
-canon.jsonl, grown as new patterns appear, and cached in canon_map.jsonl so the same
+canon.jsonl and extended in the runtime cache; mappings are cached in canon_map.jsonl so the same
 pattern always resolves to the same id (stable recurrence, run to run).
 """
 import json, os, shutil, subprocess, tempfile
@@ -95,7 +95,7 @@ def _save_map(pairs):
 
 def canonicalize(patterns):
     """Map free-text patterns -> canonical ids. Cached ones are reused (stable);
-    only new patterns hit the model. Model-proposed new ids are appended to the canon.
+    only new patterns hit the model. Model-proposed ids are kept in the runtime map; the source-controlled seed is never mutated.
     Returns {pattern: canon_id}; empty input -> {}."""
     patterns = [p for p in dict.fromkeys(patterns) if p]  # unique, non-empty, order-preserving
     if not patterns:
@@ -113,7 +113,6 @@ def canonicalize(patterns):
         for p in todo:
             cid = (mapping.get(p) or "").strip() or _slug(p)
             fresh[p] = cid; out[p] = cid
-            if cid not in known:
-                _append_canon(cid); known.add(cid)
+            known.add(cid)
         _save_map(fresh)
     return out

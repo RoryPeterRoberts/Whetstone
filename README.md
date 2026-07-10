@@ -9,7 +9,7 @@ don't compound.
 Whetstone sits alongside whatever harness you use and turns those same hours into compounding skill.
 It reads what you actually build, watches what's now possible on the frontier, and teaches you the
 **recurring gap** between the two — at the level of *directing and judging* an agent, never writing code.
-Then it banks the move so you never re-learn it.
+Then it banks the move so you never re-learn it. Every run is evidence-bearing: failed stages stop the loop, findings stay tied to their target repo, and a vanished finding is never mistaken for proof that the code changed.
 
 ## How it works (the loop)
 

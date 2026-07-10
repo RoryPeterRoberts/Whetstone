@@ -41,7 +41,10 @@ def _do_learn(repo, n, top):
         LEARN["lines"].append(f"(error: {e})")
     finally:
         LEARN["running"] = False
-        LEARN["lines"].append("✓ done — open the bank")
+        if "proc" in locals() and proc.returncode == 0:
+            LEARN["lines"].append("✓ done — open the bank")
+        else:
+            LEARN["lines"].append("✗ learn failed — inspect the output above")
 
 
 def load_profile():
