@@ -29,19 +29,33 @@ of experience and 20 hours of expertise.
 
 ## Status
 
-Early — building v1 (the full loop on one repo). See [`PLAN.md`](PLAN.md).
+Working research prototype: the complete evidence-bearing loop runs locally on one git repository. The learning effect is not yet externally validated; see [`PLAN.md`](PLAN.md).
 
-- Working: the teacher (local, Codex-backed), the command bank, the curated source list, breadcrumb capture.
-- Building: the watchers, the filter, the CLI glue.
+## Five-minute quickstart
 
-## Quickstart (dev)
+Prerequisites: Python 3.10+, git, and an installed and authenticated [Codex CLI](https://github.com/openai/codex). Whetstone otherwise uses only the Python standard library.
 
 ```bash
-# infer the LLM-building patterns from a repo's recent history
-python whetstone/breadcrumbs.py ~/your-project
+git clone https://github.com/RoryPeterRoberts/Whetstone.git
+cd Whetstone
 
-# run the teacher (local web app)
-python whetstone/teacher.py   # http://localhost:8099
+# Refresh the curated frontier snapshot
+python whetstone/whet.py watch
+
+# Analyse one of your git repositories and teach up to three gaps
+python whetstone/whet.py learn ~/your-project 14 3
+
+# Open the local learning surface
+WHETSTONE_LEARNER="Your name" python whetstone/teacher.py
+# Visit http://localhost:8099
 ```
 
-Requires [Codex CLI](https://github.com/openai/codex) on PATH (the bootstrap teacher/inference engine; a local model replaces it later). No other dependencies — Python stdlib only.
+Runtime observations, profiles, lessons, and run ledgers are local JSONL files ignored by git. Set `WHETSTONE_LEARNER` to personalize the teacher; it defaults to `Builder`.
+
+## What to expect
+
+Whetstone reads recent code history, compares recurring LLM-building patterns with its current frontier snapshot, and banks only the gaps that survive the filter. Treat every finding as a proposal: inspect its evidence and use the evaluate-first command before changing production code.
+
+## License
+
+[MIT](LICENSE).

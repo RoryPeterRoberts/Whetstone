@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""TeachRoryLLMs — local teacher server (dynamic, self-improving).
+"""Whetstone — local adaptive teacher server (dynamic, self-improving).
 
 Codex (bootstrap teacher) generates every reply live, obeying TEACHING_METHOD.md and DESIGN.md.
-- Curiosity-driven: Rory leads; any selected span can be questioned.
+- Curiosity-driven: the learner leads; any selected span can be questioned.
 - Harness-cored: each reply tagged spine or adventure.
-- Self-improving: every interaction is logged; Rory flags walls; /improve reads the walls +
+- Self-improving: every interaction is logged; the learner flags walls; /improve reads the walls +
   history and distills concrete rules into LEARNED.md, which is injected into every future reply.
 stdlib only — no new dependencies.
 """
@@ -21,6 +21,7 @@ LEARNED  = ROOT / "LEARNED.md"
 BANK     = ROOT / "bank.jsonl"
 REVIEWS  = ROOT / "reviews.jsonl"
 PORT     = 8099
+LEARNER  = os.environ.get("WHETSTONE_LEARNER", "Builder").strip() or "Builder"
 CODEX    = os.environ.get("CODEX_BIN") or shutil.which("codex") or os.path.expanduser("~/.local/bin/codex")
 TAG_RE   = re.compile(r"<<\s*(spine|adventure)[^>]*>>\s*$", re.I)
 WHET     = ROOT / "whet.py"
@@ -89,26 +90,26 @@ def build_prompt(req):
 
     note = ""
     if p["known"]:
-        note += f"\nRory already knows (do NOT re-teach): {', '.join(p['known'][:40])}."
+        note += f"\n{LEARNER} already knows (do NOT re-teach): {', '.join(p['known'][:40])}."
     if p["asked"]:
-        note += f"\nHe has asked to simplify these before (lead plainly): {', '.join(p['asked'][:40])}."
+        note += f"\n{LEARNER} has asked to simplify these before (lead plainly): {', '.join(p['asked'][:40])}."
 
     transcript = "\n\n".join(
-        ("RORY: " if m.get("role") == "you" else "TEACHER: ") + (m.get("content") or "")
+        (f"{LEARNER.upper()}: " if m.get("role") == "you" else "TEACHER: ") + (m.get("content") or "")
         for m in msgs
     ) or "(no messages yet)"
 
     acts = {
-        "simpler":    f'Rory selected "{selection}" and wants it SIMPLER. Explain just that in one plainer sentence (<25 words), concrete.',
-        "deeper":     f'Rory selected "{selection}" and wants to go DEEPER — conceptually, only as far as harnessing needs, at COMMAND altitude (the plain direction he would give his agent + the tell to judge it, NOT code). <90 words. If this is theory not needed to harness LLMs, say so in the first line.',
-        "challenge":  f'Rory challenges "{selection}": "{question or "is this right, and do I actually need it?"}". Answer straight and honest in <90 words. Concede if he is right.',
-        "verify":     f'Rory wants to VERIFY "{selection}" — is it real and discussed? Name 2-3 concrete, well-known external sources with real URLs where he can check, and say plainly if it is niche or contested. Never invent a URL.',
+        "simpler":    f'{LEARNER} selected "{selection}" and wants it SIMPLER. Explain just that in one plainer sentence (<25 words), concrete.',
+        "deeper":     f'{LEARNER} selected "{selection}" and wants to go DEEPER — conceptually, only as far as harnessing needs, at COMMAND altitude (the plain direction they would give their agent + the tell to judge it, NOT code). <90 words. If this is theory not needed to harness LLMs, say so in the first line.',
+        "challenge":  f'{LEARNER} challenges "{selection}": "{question or "is this right, and do I actually need it?"}". Answer straight and honest in <90 words. Concede if they are right.',
+        "verify":     f'{LEARNER} wants to VERIFY "{selection}" — is it real and discussed? Name 2-3 concrete, well-known external sources with real URLs where they can check, and say plainly if it is niche or contested. Never invent a URL.',
         "framebreak": f'Give the FRAMEBREAK from "{selection}": the general principle and where else it points, <80 words.',
-        "ask":        f'About "{selection}", Rory asks: "{question}". Answer straight and tight.',
-        "explain":    f'Explain this banked command so Rory can trust and use it: "{selection}". Context: {question}. Give the LOGIC as a short chain — from a fact about his code, step by step, to why this is the right move, each step checkable — then one line on when to reach for it. Plain, command-altitude, no code.',
-        "technical":  f'Rory wants "{selection}" MORE TECHNICAL — the mechanism underneath, still command-altitude (direct and judge, not code to hand-write). <90 words.',
-        "context":    f'Rory wants MORE CONTEXT around "{selection}": where it comes from, why it matters, and the provenance/logic chain that makes it trustworthy. <110 words.',
-        "high_orbit": f'Re-explain "{selection}" at HIGH ORBIT: ONE sentence — the capability and why it matters to him. Nothing else, no code.',
+        "ask":        f'About "{selection}", {LEARNER} asks: "{question}". Answer straight and tight.',
+        "explain":    f'Explain this banked command so {LEARNER} can trust and use it: "{selection}". Context: {question}. Give the LOGIC as a short chain — from a fact about their code, step by step, to why this is the right move, each step checkable — then one line on when to reach for it. Plain, command-altitude, no code.',
+        "technical":  f'{LEARNER} wants "{selection}" MORE TECHNICAL — the mechanism underneath, still command-altitude (direct and judge, not code to hand-write). <90 words.',
+        "context":    f'{LEARNER} wants MORE CONTEXT around "{selection}": where it comes from, why it matters, and the provenance/logic chain that makes it trustworthy. <110 words.',
+        "high_orbit": f'Re-explain "{selection}" at HIGH ORBIT: ONE sentence — the capability and why it matters to them. Nothing else, no code.',
         "low_orbit":  f'Re-explain "{selection}" at LOW ORBIT: the shape of it in plain English — what it does and the core idea. No code. <40 words.',
         "helicopter": f'Re-explain "{selection}" at HELICOPTER: how it works — the moving parts and how they fit, conceptually. No code. <90 words.',
         "closeup":    f'Re-explain "{selection}" at CLOSE-UP: the approach a builder would take — the technique and key decisions, bridging toward code but not full code. <110 words.',
@@ -117,21 +118,21 @@ def build_prompt(req):
     act_line = acts.get(action, "") if (action and selection) else ""
 
     guide = (
-        "GOAL (spine vs adventure): teach Rory to HARNESS LLMs for utility, not to study the field. "
-        "Teach at the harnessing level. Deep theory is an 'adventure' — conceptual only, and only because his curiosity asked; "
-        "if a thing is an adventure, say so plainly so he can choose. "
-        "For a NEW concept: a Gate (why he needs it to harness LLMs, plain), then analogy <30 words, then practice <100 words. "
+        "GOAL (spine vs adventure): teach the learner to HARNESS LLMs for utility, not to study the field. "
+        "Teach at the harnessing level. Deep theory is an 'adventure' — conceptual only, and only because their curiosity asked; "
+        "if a thing is an adventure, say so plainly so they can choose. "
+        "For a NEW concept: a Gate (why they need it to harness LLMs, plain), then analogy <30 words, then practice <100 words. "
         "For follow-ups and actions: answer straight and tight — plain, concrete, honest, no filler, no flattery; a fresh analogy only if it compresses. "
-        "He learns by DERIVING: where natural, ask him to predict or explain it back rather than telling him; affirm the true part, sharpen the imprecise part. "
-        "If his own local model could simply DO the thing, say so instead of teaching mechanics. "
-        "COMMAND ALTITUDE (critical): Rory COMMANDS a coding model (Claude Code / KERN) and NEVER writes code himself. Teach at his altitude — name the capability, when to reach for it, the plain-English DIRECTION he would give his agent — output that direction on its own line EXACTLY as `DIRECTION: <the exact copy-paste prompt for his agent>` so it is captured as a one-click reusable command — and the TELL (how he judges it worked). Do NOT present code/JSON/Python as the thing to learn; that is binary to him and his agent writes it. Only show a snippet if he explicitly asks, labelled 'what your agent produces', never something he must write. "
+        "The learner learns by DERIVING: where natural, ask them to predict or explain it back rather than telling them; affirm the true part, sharpen the imprecise part. "
+        "If their own local model could simply DO the thing, say so instead of teaching mechanics. "
+        "COMMAND ALTITUDE (critical): the learner COMMANDS a coding model (Claude Code / KERN) and need not write code themselves. Teach at their altitude — name the capability, when to reach for it, the plain-English DIRECTION they would give their agent — output that direction on its own line EXACTLY as `DIRECTION: <the exact copy-paste prompt for their agent>` so it is captured as a one-click reusable command — and the TELL (how they judge it worked). Do NOT present code/JSON/Python as the thing to learn; that is binary to them and their agent writes it. Only show a snippet if they explicitly ask, labelled 'what your agent produces', never something they must write. "
         "END your reply with a tag on its own final line: <<spine>> if it is core to harnessing LLMs, or <<adventure>> if it is deeper theory not needed to harness it."
     )
 
     learned_block = f"\n\n## Learned about this student — apply these:\n{learned}" if learned else ""
-    body = act_line or "Reply as TEACHER to Rory's last message."
+    body = act_line or f"Reply as TEACHER to {LEARNER}’s last message."
     return (
-        f"{METHOD}{learned_block}\n\n---\nYou are the teacher, mid-conversation with Rory"
+        f"{METHOD}{learned_block}\n\n---\nYou are the teacher, mid-conversation with {LEARNER}"
         + (f' about "{topic}"' if topic else "")
         + f". Obey the contract above EXACTLY.{note}\n\n{guide}\n\n"
         f"Conversation so far:\n{transcript}\n\n{body}\nMarkdown only. Do NOT edit files or run commands."
@@ -144,12 +145,12 @@ def run_improve():
     if not walls and not inter:
         return "_(nothing tracked yet — use it, flag the walls, then improve)_"
     prompt = (
-        f"{METHOD}\n\n---\nYou are improving the teacher for ONE student (Rory), from real interaction data.\n\n"
-        f"WALLS he flagged (the teaching failed him here):\n{json.dumps(walls)[:6000]}\n\n"
+        f"{METHOD}\n\n---\nYou are improving the teacher for ONE student ({LEARNER}), from real interaction data.\n\n"
+        f"WALLS they flagged (the teaching failed them here):\n{json.dumps(walls)[:6000]}\n\n"
         f"RECENT INTERACTIONS:\n{json.dumps(inter)[:9000]}\n\n"
-        "Find where the teaching failed him — the flagged walls, and patterns: repeated simplifies on one idea, "
+        "Find where the teaching failed them — the flagged walls, and patterns: repeated simplifies on one idea, "
         "challenges, abandoned threads, filler, or a missed analogy. Distill 1-5 CONCRETE rules to make the teacher "
-        "better FOR HIM. Each rule: what went wrong -> what to do instead. Plain, specific, no filler. Markdown bullets only. "
+        "better FOR THEM. Each rule: what went wrong -> what to do instead. Plain, specific, no filler. Markdown bullets only. "
         "Do NOT edit files or run commands."
     )
     rules = call_codex(prompt)
@@ -279,6 +280,6 @@ class Server(socketserver.ThreadingMixIn, http.server.HTTPServer):
 
 
 if __name__ == "__main__":
-    print(f"TeachRoryLLMs teacher → http://localhost:{PORT}   (Ctrl-C to stop)")
+    print(f"Whetstone teacher → http://localhost:{PORT}   (Ctrl-C to stop)")
     print(f"codex: {CODEX}")
     Server(("127.0.0.1", PORT), Handler).serve_forever()
