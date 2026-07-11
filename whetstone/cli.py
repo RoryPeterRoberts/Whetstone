@@ -3,7 +3,7 @@
 Status is a COMMAND, not a dashboard. The trust contract is visible: no account, no
 telemetry; `delete-data` removes the local product records on demand.
 
-    python3 cli.py {on|off|status|delete-data|diagnostic}   (run from the whetstone/ dir)
+    python3 cli.py {on|off|status|delete-data|diagnostic|metrics}   (run from the whetstone/ dir)
 """
 import json
 import sys
@@ -13,6 +13,7 @@ import capture
 import detector
 import events
 import matcher
+import metrics as _metrics
 
 ROOT = Path(__file__).resolve().parent
 CONFIG = ROOT / "whetstone_config.json"
@@ -93,15 +94,20 @@ def cmd_diagnostic(events_path=events.EVENTS):
     return json.dumps(info, indent=2)
 
 
+def cmd_metrics(events_path=events.EVENTS):
+    """Pilot metrics computed from the ledger (spec section 15)."""
+    return json.dumps(_metrics.compute_metrics(path=events_path), indent=2)
+
+
 _COMMANDS = {
     "on": cmd_on, "off": cmd_off, "status": cmd_status,
-    "delete-data": cmd_delete_data, "diagnostic": cmd_diagnostic,
+    "delete-data": cmd_delete_data, "diagnostic": cmd_diagnostic, "metrics": cmd_metrics,
 }
 
 
 def main(argv):
     if not argv or argv[0] not in _COMMANDS:
-        sys.stderr.write("usage: whetstone.cli {on|off|status|delete-data|diagnostic}\n")
+        sys.stderr.write("usage: whetstone.cli {on|off|status|delete-data|diagnostic|metrics}\n")
         return 2
     print(_COMMANDS[argv[0]]())
     return 0
