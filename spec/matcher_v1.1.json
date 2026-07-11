@@ -19,10 +19,14 @@
   ],
   "directive_terms": [
     "require", "use", "add", "ensure", "validate", "reject", "must", "should",
-    "fail closed", "enforce", "always", "never allow"
+    "fail closed", "enforce", "always"
   ],
+  "prohibition_directives": [
+    "never allow", "do not allow", "must not allow", "don't allow", "disallow"
+  ],
+  "note_prohibition_directives": "Affirmative controls phrased as prohibitions ('never allow malformed output to reach the db'). They SATISFY the directive requirement, and their spans are removed from the sentence BEFORE negation detection so their 'never'/'not'/\"don't\" do not trip the negation guard. Applied in step 2b.",
   "imperative_patterns": [
-    "^(require|use|add|ensure|validate|reject|enforce|make sure|do not allow|never allow)\\b"
+    "^(require|use|add|ensure|validate|reject|enforce|make sure)\\b"
   ],
   "question_markers": {
     "terminal": "?",
@@ -36,14 +40,16 @@
   "match_rule": {
     "step_1": "Normalize; drop quoted spans.",
     "step_2": "Split into sentences on sentence_boundary_chars, but classify each sentence as a question FIRST (terminal '?' or leading interrogative) before discarding delimiters.",
-    "step_3": "A sentence is a POSITIVE DIRECTION iff it contains >=1 control_term AND >=1 boundary_term (same sentence) AND (>=1 directive_term OR an imperative_pattern match) AND is NOT a question AND has NO negation_marker.",
+    "step_2b": "For each sentence, note any prohibition_directive spans (they satisfy the directive requirement) and REMOVE those spans before scanning for negation_markers, so an affirmative prohibition is not misread as a negation.",
+    "step_3": "A sentence is a POSITIVE DIRECTION iff it contains >=1 control_term AND >=1 boundary_term (same sentence) AND (>=1 directive_term OR an imperative_pattern OR a prohibition_directive) AND is NOT a question AND (after removing prohibition spans) has NO negation_marker.",
     "step_4": "Accept if >=1 positive-direction sentence exists AND no sentence carries a conflicting negation/question signal about the same control. Store ALL matched excerpts (or their combined bounded span) with their per-record byte hashes.",
     "step_5": "Otherwise -> NO direction leg. Ambiguity always fails closed."
   },
   "examples": {
     "pass": [
       "validate model output against the schema and reject invalid results before writing to the database",
-      "validate the output before the database write. reject invalid values before persisting."
+      "validate the output before the database write. reject invalid values before persisting.",
+      "never allow unvalidated model output to reach the database write."
     ],
     "fail": [
       {"text": "do we need schema validation?", "reason": "question"},
