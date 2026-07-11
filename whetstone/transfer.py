@@ -17,6 +17,17 @@ PRINCIPLE_ID = "p_structured_output_boundary"
 PRINCIPLE_VERSION = 1
 
 
+_SETTLED = {"transferred", "applied_again", "deliberately_omitted", "already_known"}
+
+
+def should_teach(repo_id, principle_id=PRINCIPLE_ID, path=events.EVENTS):
+    """Teaching is suppressed once a principle is settled in a repo (spec section 14:
+    transfer recorded -> teaching suppressed)."""
+    proj = events.build_projections(path=path)
+    disp = proj["per_repo_disposition"].get(repo_id, {}).get(principle_id)
+    return not (disp and disp["kind"] in _SETTLED)
+
+
 def verify_transfer(*, opportunity_id, finding_id, from_repo_id, to_repo_id,
                     matched_direction, tell_result, worktree_stable=True,
                     principle_id=PRINCIPLE_ID, principle_version=PRINCIPLE_VERSION,
