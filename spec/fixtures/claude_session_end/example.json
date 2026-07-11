@@ -1,0 +1,1 @@
+{ "session_id": "sess-abc123", "transcript_path": "/home/u/.claude/projects/-repo/sess-abc123.jsonl", "cwd": "/home/u/repo", "hook_event_name": "SessionEnd", "end_reason": "logout" }

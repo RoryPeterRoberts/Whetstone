@@ -1,0 +1,22 @@
+{
+  "event_id": "e_1",
+  "ts": 1,
+  "kind": "direction_recalled",
+  "principle_id": "p_sob",
+  "principle_version": 1,
+  "repo_id": "r_a",
+  "host": "claude_code",
+  "session_id": "s",
+  "evidence": {
+    "opportunity_id": "o1",
+    "direction_id": "d1",
+    "excerpt_sha256": "h"
+  },
+  "schema_version": 1,
+  "whetstone_version": "0.1",
+  "policy_version": "0.1",
+  "detector_version": "0.1",
+  "model_id": null,
+  "mapping_prompt_hash": null,
+  "worktree_sha256": "w0"
+}

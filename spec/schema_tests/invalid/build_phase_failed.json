@@ -1,0 +1,13 @@
+{
+  "kind": "phase_verified",
+  "phase": 1,
+  "commit": "c",
+  "test_command_argv": [
+    "pytest",
+    "-q"
+  ],
+  "exit_code": 1,
+  "stdout_sha256": "o",
+  "test_manifest_sha256": "m",
+  "ts": 1
+}

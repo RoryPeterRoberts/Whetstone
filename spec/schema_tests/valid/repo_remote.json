@@ -1,0 +1,13 @@
+{
+  "repo_id": "r_a",
+  "origin_kind": "remote",
+  "identity_basis": {
+    "canonical_remote_at_creation": "github.com/o/r",
+    "sorted_root_commits": [
+      "a1"
+    ]
+  },
+  "persisted_at": "/g/whetstone_repo_id",
+  "local_path": "/p",
+  "current_normalized_remote": "github.com/o/r"
+}

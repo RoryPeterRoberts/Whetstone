@@ -1,0 +1,43 @@
+{
+  "tell_id": "t_1",
+  "principle_id": "p_sob",
+  "repo_id": "r_a",
+  "test_command_argv": [
+    "pytest",
+    "-q"
+  ],
+  "probe_runs": [
+    {
+      "role": "baseline_or_mutated",
+      "commit": "c",
+      "worktree_sha256": "w",
+      "selector_collected": true,
+      "selector_executed": true,
+      "outcome": "failed",
+      "failure_kind": "expected_sink_assertion",
+      "failure_signature_sha256": null,
+      "exit_code": 0,
+      "stdout_sha256": "o",
+      "stderr_sha256": "e",
+      "test_file_sha256": "tf1",
+      "environment_sha256": "env"
+    },
+    {
+      "role": "fixed",
+      "commit": "c",
+      "worktree_sha256": "w",
+      "selector_collected": true,
+      "selector_executed": true,
+      "outcome": "passed",
+      "failure_kind": null,
+      "failure_signature_sha256": null,
+      "exit_code": 0,
+      "stdout_sha256": "o",
+      "stderr_sha256": "e",
+      "test_file_sha256": "tf2",
+      "environment_sha256": "env"
+    }
+  ],
+  "mutation": null,
+  "result": "discriminating"
+}
