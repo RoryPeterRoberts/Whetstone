@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://whetstone.local/schemas/repository_identity.schema.json",
+  "title": "Whetstone repository identity",
+  "description": "Stable cross-repo identity, computed once then PERSISTED and read thereafter (a later remote rename cannot change it). A remote-origin identity MUST carry its identity_basis. The generation algorithm is normative in the Implementation Spec section 6; it is NOT a schema keyword.",
+  "type": "object",
+  "required": ["repo_id", "origin_kind", "persisted_at", "local_path"],
+  "additionalProperties": false,
+  "properties": {
+    "repo_id": {"type": "string", "pattern": "^r_"},
+    "origin_kind": {"enum": ["remote", "local_uuid"]},
+    "identity_basis": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "canonical_remote_at_creation": {"type": "string"},
+        "sorted_root_commits": {"type": "array", "items": {"type": "string"}, "minItems": 1}
+      },
+      "required": ["canonical_remote_at_creation", "sorted_root_commits"]
+    },
+    "persisted_at": {"type": "string"},
+    "local_path": {"type": "string"},
+    "current_normalized_remote": {"type": ["string", "null"]}
+  },
+  "allOf": [
+    {"if": {"properties": {"origin_kind": {"const": "remote"}}},
+     "then": {"required": ["identity_basis"], "properties": {"identity_basis": {"type": "object"}}}},
+    {"if": {"properties": {"origin_kind": {"const": "local_uuid"}}},
+     "then": {"properties": {"identity_basis": {"type": "null"}}}}
+  ],
+  "$comment": "Algorithm (normative in spec section 6): remote -> id='r_'+sha256(canonical_remote+'\\n'+join(sorted_root_commits)); no remote -> 'r_'+uuid4hex. Persist in <git-common-dir>/whetstone_repo_id; read persisted value thereafter. Worktrees share via git rev-parse --git-common-dir. local_path and current_normalized_remote are metadata only."
+}

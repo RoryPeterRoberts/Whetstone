@@ -1,0 +1,1 @@
+{ "session_id": "sess-def456", "prompt_id": "prm-0007", "cwd": "/home/u/repo", "hook_event_name": "UserPromptSubmit", "prompt_text": "Validate model output against the schema and reject invalid results before writing to the database." }

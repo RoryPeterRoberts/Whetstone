@@ -1,0 +1,1 @@
+{ "session_id": "sess-abc123", "prompt_id": "prm-0001", "transcript_path": "/home/u/.claude/projects/-repo/sess-abc123.jsonl", "cwd": "/home/u/repo", "permission_mode": "default", "hook_event_name": "Stop", "last_assistant_message": "Added schema validation before the DB write." }

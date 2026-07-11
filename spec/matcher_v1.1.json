@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "matcher_version": "1.1",
+  "description": "Deterministic, fail-closed local matcher for the structured-output boundary-validation direction. A model never sees this text. Anything outside the frozen lexicon fails closed (no direction leg).",
+  "normalize": ["lowercase", "strip_punct_except_sentence_boundaries", "collapse_whitespace"],
+  "sentence_boundary_chars": [".", "!", "?", "\n"],
+  "ignore_quoted": true,
+  "note_ignore_quoted": "Drop spans inside single/double quotes or backticks before matching; quoted text is usually example output, not an instruction.",
+  "control_terms": [
+    "schema", "validate", "validation", "validated", "schema-constrained",
+    "reject invalid", "reject the invalid", "pydantic", "jsonschema", "json schema",
+    "type-check the output", "structured output", "constrained decoding"
+  ],
+  "boundary_terms": [
+    "before writing", "before the write", "before persisting", "before saving",
+    "before the db", "database write", "state change", "api response",
+    "return to the caller", "file write", "write to disk", "persist",
+    "commit to", "insert into", "before the sink"
+  ],
+  "directive_terms": [
+    "require", "use", "add", "ensure", "validate", "reject", "must", "should",
+    "fail closed", "enforce", "always", "never allow"
+  ],
+  "imperative_patterns": [
+    "^(require|use|add|ensure|validate|reject|enforce|make sure|do not allow|never allow)\\b"
+  ],
+  "question_markers": {
+    "terminal": "?",
+    "leading": "^(do|does|should|can|could|would|is|are|what|how|why|when|which|who)\\b",
+    "note": "Classify a sentence as a question BEFORE stripping its terminal delimiter (order matters)."
+  },
+  "negation_markers": [
+    "\\bno\\b", "\\bnot\\b", "don't", "do not", "never", "without",
+    "avoid", "instead of", "rather than"
+  ],
+  "match_rule": {
+    "step_1": "Normalize; drop quoted spans.",
+    "step_2": "Split into sentences on sentence_boundary_chars, but classify each sentence as a question FIRST (terminal '?' or leading interrogative) before discarding delimiters.",
+    "step_3": "A sentence is a POSITIVE DIRECTION iff it contains >=1 control_term AND >=1 boundary_term (same sentence) AND (>=1 directive_term OR an imperative_pattern match) AND is NOT a question AND has NO negation_marker.",
+    "step_4": "Accept if >=1 positive-direction sentence exists AND no sentence carries a conflicting negation/question signal about the same control. Store ALL matched excerpts (or their combined bounded span) with their per-record byte hashes.",
+    "step_5": "Otherwise -> NO direction leg. Ambiguity always fails closed."
+  },
+  "examples": {
+    "pass": [
+      "validate model output against the schema and reject invalid results before writing to the database",
+      "validate the output before the database write. reject invalid values before persisting."
+    ],
+    "fail": [
+      {"text": "do we need schema validation?", "reason": "question"},
+      {"text": "don't add schema validation here.", "reason": "negation"},
+      {"text": "return json.", "reason": "no control term and no boundary term"},
+      {"text": "schema validation exists before the database write.", "reason": "no directive term / not imperative (incidental statement)"}
+    ]
+  }
+}

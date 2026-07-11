@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://whetstone.local/schemas/tell_record.schema.json",
+  "title": "Whetstone tell record (executable discrimination proof)",
+  "description": "Proves the test DISCRIMINATES failure from success. Structurally enforced here: exactly one baseline_or_mutated and one fixed probe; both selectors collected AND executed; and (when result==discriminating) the baseline failed at the EXPECTED sink assertion while the fixed run passed. Cross-record equality (identical test/environment hashes) and mutation-diff scope are enforced by spec/validate_tell.py (JSON Schema cannot compare two array items). A non-zero exit code alone never validates a tell.",
+  "type": "object",
+  "required": ["tell_id", "principle_id", "repo_id", "test_command_argv", "probe_runs", "mutation", "result"],
+  "additionalProperties": false,
+  "properties": {
+    "tell_id": {"type": "string", "pattern": "^t_"},
+    "principle_id": {"type": "string", "pattern": "^p_"},
+    "repo_id": {"type": "string", "pattern": "^r_"},
+    "test_command_argv": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+    "detector_version": {"type": "string"},
+    "probe_runs": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "allOf": [
+        {"contains": {"type": "object", "properties": {"role": {"const": "baseline_or_mutated"}}, "required": ["role"]}, "minContains": 1, "maxContains": 1},
+        {"contains": {"type": "object", "properties": {"role": {"const": "fixed"}}, "required": ["role"]}, "minContains": 1, "maxContains": 1}
+      ],
+      "items": {"$ref": "#/$defs/probe_run"}
+    },
+    "mutation": {
+      "oneOf": [
+        {"type": "null"},
+        {"type": "object", "required": ["used", "target_evidence", "mutation_diff_sha256"], "additionalProperties": false,
+          "properties": {
+            "used": {"const": true},
+            "target_evidence": {"type": "object", "required": ["path", "line_start", "line_end", "file_sha256"], "additionalProperties": false,
+              "properties": {"path": {"type": "string"}, "line_start": {"type": "integer"}, "line_end": {"type": "integer"}, "file_sha256": {"type": "string"}}},
+            "mutation_diff_sha256": {"type": "string"}
+          }}
+      ]
+    },
+    "result": {"enum": ["discriminating", "vacuous"]}
+  },
+  "allOf": [
+    {"if": {"properties": {"result": {"const": "discriminating"}}},
+     "then": {"properties": {"probe_runs": {"items": {"$ref": "#/$defs/probe_run_discriminating"}}}}}
+  ],
+  "$defs": {
+    "probe_run": {
+      "type": "object",
+      "required": ["role", "commit", "worktree_sha256", "selector_collected", "selector_executed", "outcome", "exit_code", "stdout_sha256", "stderr_sha256", "test_file_sha256", "environment_sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "role": {"enum": ["baseline_or_mutated", "fixed"]},
+        "commit": {"type": "string"},
+        "worktree_sha256": {"type": "string"},
+        "selector_collected": {"const": true},
+        "selector_executed": {"const": true},
+        "outcome": {"enum": ["passed", "failed"]},
+        "failure_kind": {"type": ["string", "null"], "enum": ["expected_sink_assertion", "dependency_error", "import_error", "setup_error", "collection_error", "other", null]},
+        "failure_signature_sha256": {"type": ["string", "null"]},
+        "exit_code": {"type": "integer"},
+        "stdout_sha256": {"type": "string"},
+        "stderr_sha256": {"type": "string"},
+        "test_file_sha256": {"type": "string"},
+        "environment_sha256": {"type": "string"}
+      }
+    },
+    "probe_run_discriminating": {
+      "allOf": [
+        {"if": {"properties": {"role": {"const": "baseline_or_mutated"}}},
+         "then": {"properties": {"outcome": {"const": "failed"}, "failure_kind": {"const": "expected_sink_assertion"}}, "required": ["failure_kind"]}},
+        {"if": {"properties": {"role": {"const": "fixed"}}},
+         "then": {"properties": {"outcome": {"const": "passed"}}}}
+      ]
+    }
+  }
+}

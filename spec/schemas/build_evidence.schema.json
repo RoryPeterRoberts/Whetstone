@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://whetstone.local/schemas/build_evidence.schema.json",
+  "title": "Whetstone implementation-governance ledger (build_evidence.jsonl)",
+  "description": "Append-only ledger of phase verification, SEPARATE from the product events.jsonl. Initialised in Phase 1. A phase_verified record with a non-zero exit code must be structurally impossible: a failed phase cannot be recorded as verified.",
+  "type": "object",
+  "required": ["kind", "phase", "commit", "test_command_argv", "exit_code", "stdout_sha256", "test_manifest_sha256", "ts"],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {"const": "phase_verified"},
+    "phase": {"type": "integer", "minimum": 1, "maximum": 9},
+    "commit": {"type": "string"},
+    "test_command_argv": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+    "exit_code": {"const": 0},
+    "stdout_sha256": {"type": "string"},
+    "test_manifest_sha256": {"type": "string"},
+    "ts": {"type": "integer"},
+    "notes": {"type": "string"}
+  },
+  "$comment": "If a phase requires several exit tests, record one phase_verified per test (each exit_code==0) or extend with a required array whose entries all carry exit_code==0. exit_code is const 0 by design."
+}

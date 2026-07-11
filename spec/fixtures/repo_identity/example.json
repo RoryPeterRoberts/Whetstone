@@ -1,0 +1,5 @@
+{ "with_remote": { "canonical_remote": "github.com/org/repo", "sorted_root_commits": ["a1b2c3"], "expected_repo_id_basis": "sha256(github.com/org/repo\\na1b2c3)" },
+  "no_remote": { "expected": "r_<uuid4hex>, persisted in <git-common-dir>/whetstone_repo_id" },
+  "clone_of_same_remote": { "expected": "same repo_id as with_remote (NOT new)" },
+  "second_worktree": { "expected": "same repo_id (shares git-common-dir)" },
+  "moved_repo": { "expected": "same repo_id; only local_path changes" } }

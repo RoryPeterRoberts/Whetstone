@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://whetstone.local/schemas/direction_record.schema.json",
+  "title": "Whetstone direction record (direction_record.jsonl)",
+  "description": "The local, redacted referent of every direction_id. User-authored direction only; a model never receives this text in the slice.",
+  "type": "object",
+  "required": ["direction_id", "session_id", "prompt_association", "repo_id", "ts", "redacted_excerpt", "excerpt_sha256", "authorship", "matcher_version", "provenance"],
+  "additionalProperties": false,
+  "properties": {
+    "direction_id": {"type": "string", "pattern": "^d_"},
+    "session_id": {"type": "string"},
+    "prompt_association": {
+      "type": "string",
+      "enum": ["prompt_id", "paired", "ancestry"],
+      "description": "how the direction was bound to the task: prompt_id (preferred), paired (UserPromptSubmit local capture), or ancestry (final transcript ancestry)"
+    },
+    "repo_id": {"type": "string", "pattern": "^r_"},
+    "ts": {"type": "integer"},
+    "redacted_excerpt": {"type": "string", "description": "exact user-authored text, secrets redacted before persistence"},
+    "excerpt_sha256": {"type": "string"},
+    "authorship": {
+      "type": "string",
+      "const": "user",
+      "description": "evidence: transcript record type=='user' AND isSidechain==false; model-expanded text is never eligible"
+    },
+    "matcher_version": {"type": "string"},
+    "matched_terms": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "control": {"type": "array", "items": {"type": "string"}},
+        "boundary": {"type": "array", "items": {"type": "string"}},
+        "directive": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "description": "Hash the EXACT bounded source records, never the whole growing transcript.",
+      "required": ["records"],
+      "additionalProperties": false,
+      "properties": {
+        "records": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["record_uuid", "record_sha256"],
+            "additionalProperties": false,
+            "properties": {
+              "record_uuid": {"type": "string"},
+              "record_sha256": {"type": "string", "description": "byte hash of the exact transcript record, not the whole file"}
+            }
+          }
+        }
+      }
+    }
+  }
+}
