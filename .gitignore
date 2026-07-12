@@ -5,3 +5,5 @@ profile.json
 LEARNED.md
 .superpowers/
 projections/
+session_checkpoints.json
+whetstone_config.json

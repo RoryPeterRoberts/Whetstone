@@ -46,6 +46,8 @@ def parse_transcript(path):
 
     A torn final line (crash mid-append) is skipped, never fatal (spec section 14)."""
     out = []
+    if path is None:
+        return out
     text = Path(path).read_text() if not isinstance(path, (list, tuple)) else "\n".join(path)
     for line in text.splitlines():
         line = line.strip()
@@ -228,11 +230,17 @@ def _git(cwd, *args):
 
 def is_meaningful_build(cwd, checkpoint_head):
     """True iff the repo at cwd shows a relevant diff or a new commit since the
-    session checkpoint (spec section 5). No change -> the Stop is ignored."""
+    session checkpoint (spec section 5). No change -> the Stop is ignored.
+
+    checkpoint_head is None on the first Stop of a session (no baseline captured yet):
+    fall back to "is the worktree dirty" rather than treating every Stop as meaningful.
+    """
     head = _git(cwd, "rev-parse", "HEAD")
     if head.returncode != 0:
         return False
-    if head.stdout.strip() != (checkpoint_head or ""):
+    dirty = bool(_git(cwd, "status", "--porcelain").stdout.strip())
+    if checkpoint_head is None:
+        return dirty
+    if head.stdout.strip() != checkpoint_head:
         return True
-    porcelain = _git(cwd, "status", "--porcelain")
-    return bool(porcelain.stdout.strip())
+    return dirty
