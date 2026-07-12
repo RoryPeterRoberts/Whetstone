@@ -1,0 +1,310 @@
+\documentclass[11pt]{article}
+
+% ===========================================================================
+%  Whetstone — Instruction Manual
+%  How to install, run, and read the MVP vertical slice.
+%  Companion to whetstone_implementation.pdf (engine) and
+%  whetstone_strongest_version.pdf (thesis). Built 2026-07-12.
+% ===========================================================================
+
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{inconsolata}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{tcolorbox}
+\usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,backgrounds,calc}
+\usepackage[hidelinks]{hyperref}
+
+\tcbuselibrary{skins,breakable}
+
+% ---- palette (shared with the doc set) ------------------------------------
+\definecolor{ink}{HTML}{1A2233}
+\definecolor{steel}{HTML}{2F5D8A}
+\definecolor{stone}{HTML}{6B7280}
+\definecolor{edge}{HTML}{B45309}
+\definecolor{moss}{HTML}{2F6F4E}
+\definecolor{rust}{HTML}{9A3324}
+\definecolor{paper}{HTML}{FBFAF7}
+\definecolor{panel}{HTML}{F1EEE7}
+\definecolor{rule}{HTML}{D8D2C6}
+\definecolor{termbg}{HTML}{20262F}
+\definecolor{termink}{HTML}{E7E3D8}
+
+\pagecolor{paper}
+\color{ink}
+
+\titleformat{\section}{\Large\bfseries\color{steel}}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\large\bfseries\color{ink}}{\thesubsection}{0.6em}{}
+\titlespacing*{\section}{0pt}{1.4em}{0.4em}
+\setcounter{secnumdepth}{0}
+
+\newcommand{\code}[1]{\textcolor{ink}{\texttt{#1}}}
+
+% ---- terminal / command block ---------------------------------------------
+\lstdefinestyle{term}{
+  backgroundcolor=\color{termbg}, basicstyle=\small\ttfamily\color{termink},
+  breaklines=true, columns=fullflexible, keepspaces=true,
+  frame=none, xleftmargin=10pt, xrightmargin=6pt, aboveskip=8pt, belowskip=6pt,
+  literate={->}{{\textcolor{edge}{->}}}1
+}
+\lstnewenvironment{term}{\lstset{style=term}}{}
+
+% ---- callout boxes --------------------------------------------------------
+\newtcolorbox{tip}[1][]{breakable, enhanced, colback=panel, colframe=edge,
+  boxrule=0pt, leftrule=3pt, arc=1pt, left=10pt, right=10pt, top=8pt, bottom=8pt,
+  before upper={\textcolor{edge}{\bfseries #1}\par\smallskip}}
+\newtcolorbox{boundary}[1][]{breakable, enhanced, colback=paper, colframe=rust,
+  boxrule=0pt, leftrule=3pt, arc=1pt, left=10pt, right=10pt, top=8pt, bottom=8pt,
+  before upper={\textcolor{rust}{\bfseries #1}\par\smallskip}}
+\newtcolorbox{ok}[1][]{breakable, enhanced, colback=paper, colframe=moss,
+  boxrule=0pt, leftrule=3pt, arc=1pt, left=10pt, right=10pt, top=8pt, bottom=8pt,
+  before upper={\textcolor{moss}{\bfseries #1}\par\smallskip}}
+
+\setlist[itemize]{leftmargin=1.3em, itemsep=2pt, topsep=3pt}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\begin{document}
+
+% ===================== TITLE =====================
+\begin{center}
+{\footnotesize\bfseries\color{edge}\MakeUppercase{Instruction Manual \textbullet\ MVP vertical slice}}\\[0.4em]
+{\Huge\bfseries\color{ink} Whetstone}\\[0.3em]
+{\large\color{steel}\itshape The post-build skill layer for people who direct coding agents}\\[0.6em]
+{\color{rule}\rule{\textwidth}{1pt}}
+\end{center}
+
+\vspace{0.3em}
+Whetstone watches what you delegate to a coding agent, teaches you the single sharpest
+directing principle you are missing, and then \emph{verifies} whether you reuse it,
+unaided, in a later build. It runs on your machine, interrupts rarely, and keeps no
+account and no telemetry. This manual covers the one practice the MVP ships today:
+\textbf{structured-output boundary validation} --- requiring model output to be
+schema-validated and rejected before it crosses a state boundary.
+
+\begin{ok}[What state this is]
+Engine complete and proven: 8 phases, 100+ tests, an adversarial schema gate, all on
+\code{main}. Every phase carries a machine-checkable \code{phase\_verified} record --- ``done''
+is evidence, not a claim. A live \code{Stop}-hook orchestrator makes it installable today.
+\end{ok}
+
+% ===================== 1. WHAT IT DOES =====================
+\section{What it does for you}
+
+You increasingly direct an agent instead of writing the code yourself. That builds the
+agent's capability and quietly erodes yours. Whetstone is the counterweight: it turns your
+building hours back into \emph{your} compounding judgement.
+
+\begin{itemize}
+\item \textbf{Watches} each completed task (via a Claude Code \code{Stop} hook) and notices
+      when you shipped model output across a boundary with no validation.
+\item \textbf{Teaches} one principle, once, at command altitude --- three lines
+      (Direction / Principle / Tell), never a code dump.
+\item \textbf{Waits}, then when a comparable situation appears in a \emph{different} repo,
+      prompts you to recall the principle in your own words.
+\item \textbf{Verifies} transfer from an \emph{artifact}, not a guess: it only records
+      ``transferred'' when a discriminating test proves the malformed output can no longer
+      reach the sink. This is the whole point --- the claim is earned, never inferred.
+\end{itemize}
+
+% ===================== 2. THE LOOP =====================
+\section{The loop, at a glance}
+
+\begin{center}
+\begin{tikzpicture}[
+  node distance=6mm and 9mm,
+  box/.style={draw=rule, fill=panel, rounded corners=2pt, text width=20mm,
+    align=center, font=\scriptsize\bfseries, inner sep=4pt, text=ink, minimum height=10mm},
+  strong/.style={box, fill=moss!14, draw=moss, text=moss},
+  arr/.style={-{Stealth[length=4pt]}, draw=steel, thick}]
+\node[box] (watch) {Watch \\ \normalfont a build};
+\node[box, right=of watch] (detect) {Detect \\ \normalfont the gap};
+\node[box, right=of detect] (teach) {Teach \\ \normalfont 1 card};
+\node[box, right=of teach] (later) {Later, \\ \normalfont new repo};
+\node[box, right=of later] (recall) {You \\ \normalfont recall it};
+\node[strong, right=of recall] (transfer) {Tell proves \\ \normalfont TRANSFERRED};
+\draw[arr] (watch) -- (detect);
+\draw[arr] (detect) -- (teach);
+\draw[arr] (teach) -- (later);
+\draw[arr] (later) -- (recall);
+\draw[arr] (recall) -- (transfer);
+\end{tikzpicture}
+\end{center}
+
+Steps 1--5 are deterministic and run with no model in the loop. The green step is the
+only strong claim, and it is gated by an executable test, not an opinion.
+
+% ===================== 3. INSTALL =====================
+\section{Install}
+
+\textbf{Prerequisites:} Python 3, \code{git}, and \code{pip install jsonschema pytest}.
+
+\textbf{1. Clone the repo and record its path.} Clone anywhere; everything below is
+relative to your clone (shown as \code{\$WHETSTONE}).
+\begin{term}
+git clone https://github.com/RoryPeterRoberts/Whetstone.git
+cd Whetstone
+export WHETSTONE="$(pwd)"     # absolute path to your clone
+\end{term}
+
+\textbf{2. Verify the engine on your machine} (from the repo root):
+\begin{term}
+python3 -m pytest whetstone -q
+python3 spec/schema_tests/run_schema_tests.py
+\end{term}
+You should see every test pass and \code{OK: schemas strict-compile; 9 valid accepted; 12 invalid rejected.}
+
+\textbf{3. Register the Stop hook} in \code{\textasciitilde/.claude/settings.json} so Claude Code
+runs Whetstone after each completed task. Claude Code needs an \emph{absolute} path, so
+substitute the value of \code{\$WHETSTONE} from step 1 (e.g. \code{/home/you/code/Whetstone}):
+\begin{term}
+{
+  "hooks": {
+    "Stop": [
+      { "hooks": [
+        { "type": "command",
+          "command": "python3 $WHETSTONE/whetstone/whetstone_hook.py" }
+      ] }
+    ]
+  }
+}
+\end{term}
+
+\textbf{4. Turn capture on:}
+\begin{term}
+cd $WHETSTONE/whetstone
+python3 cli.py on
+\end{term}
+
+\begin{tip}[The hook can never break your session]
+\code{whetstone\_hook.py} fails open: malformed input or any internal error is swallowed
+and it exits 0. It reads the hook JSON on stdin, records to a local ledger, and writes
+diagnostics only to stderr. It never blocks or edits your work.
+\end{tip}
+
+% ===================== 4. COMMANDS =====================
+\section{The commands}
+
+Run these from the \code{whetstone/} directory. Status is a command, not a dashboard.
+
+\begin{center}\small
+\begin{tabular}{@{}p{3.4cm}p{10.4cm}@{}}
+\toprule
+\textbf{Command} & \textbf{What it does} \\
+\midrule
+\code{cli.py on} / \code{off} & Enable or disable capture. \\
+\code{cli.py status} & Command-altitude learner state from the ledger: how many principles
+you have ever recalled and transferred, and each repo's disposition. \\
+\code{cli.py metrics} & The pilot metrics (see next page), as JSON. \\
+\code{cli.py diagnostic} & Versions, capability detection, and the trust contract. \\
+\code{cli.py delete-data} & Remove your local product records (events, direction records,
+projections) on demand. Leaves the governance ledger and legacy inputs alone. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\code{status} looks like this:
+\begin{term}
+capture: on
+principles ever transferred: 1
+principles ever recalled:    1
+repositories seen:           2
+  r_9f3c1a...  p_structured_output_boundary  transferred
+\end{term}
+
+% ===================== 5. METRICS =====================
+\section{Reading the metrics}
+
+\code{cli.py metrics} computes everything from the append-only event ledger --- nothing is
+tracked separately, so the numbers can always be re-derived and never drift.
+
+\begin{center}\small
+\begin{tabular}{@{}p{4.6cm}p{9.2cm}@{}}
+\toprule
+\textbf{Metric} & \textbf{Meaning} \\
+\midrule
+\code{acceptance\_rate} & Of findings surfaced, the fraction you accepted. \\
+\code{top\_finding\_precision} & Of findings you actually judged, the fraction that were real. \\
+\code{false\_positive\_rate} & Findings surfaced that were not a real actionable gap. \\
+\code{application\_rate} & Of accepted findings, the fraction you applied. \\
+\code{recurrence\_rate} & Principles that recur across more than one repo. \\
+\code{prompted\_recall\_rate} & Of recalls prompted, the fraction you answered with a matching direction. \\
+\code{unaided\_transfer\_count} & \textbf{The north-star.} Times you reused a principle, unaided, in a new repo, proven by a discriminating tell. \\
+\code{unaided\_transfer\_rate} & Transfers over lessons that had a genuinely \emph{comparable later opportunity} --- not total lessons. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{tip}[Why the denominator matters]
+The transfer rate divides by the number of lessons for which a comparable later
+opportunity actually occurred, not by every lesson you were ever shown. A tool that divided
+by total lessons would look worse the more it taught, and could be gamed by never following
+up. This denominator is the honest one.
+\end{tip}
+
+% ===================== 6. TRUST =====================
+\section{The trust contract}
+
+\begin{itemize}
+\item \textbf{No account, no telemetry, no cloud.} Everything is local files in the repo.
+\item \textbf{Your raw transcript never leaves the machine} and is never copied. Only a
+      redacted direction excerpt is stored, and a deterministic redaction pass strips
+      secrets \emph{before} anything is written.
+\item \textbf{No model sees your direction text} in this slice --- the matcher is
+      deterministic and local.
+\item \textbf{Nothing is enforced.} Whetstone records risk as metadata; it never blocks an
+      action or edits your code. Applying any lesson is your choice.
+\item \textbf{\code{delete-data} means it.} One command removes your captured records.
+\end{itemize}
+
+% ===================== 7. HONEST BOUNDARY =====================
+\section{What is proven, and what is not}
+
+\begin{ok}[Proven end to end]
+The full path --- watch, detect, capture your direction, match it, run a discriminating
+tell, and record \code{transferred} only across different repositories --- passes as an
+acceptance test, driven by a \emph{real} executable tell (not a mock). Every ``must-not-transfer''
+case (agent inserted it, irrelevant direction, a vacuous test, a changed worktree) is
+rejected structurally.
+\end{ok}
+
+\begin{boundary}[The honest edge]
+The artifact tell is proven against a registered discriminating test for the structured-output
+practice. Whetstone does \emph{not} yet auto-generate a discriminating test for arbitrary
+code --- in the wild, the transfer leg needs that test to exist. The live hook today does the
+deterministic work reliably (trigger, repo identity, direction capture, detection,
+recording); full automated transfer verification on any repo is the next slice, not a
+present claim. The MVP also watches for exactly \emph{one} practice by design.
+\end{boundary}
+
+% ===================== 8. VERIFY =====================
+\section{Verify it yourself}
+
+You never have to take the tool's word for anything.
+
+\begin{term}
+# re-run the whole suite and the adversarial schema gate (from the repo root):
+python3 -m pytest whetstone -q
+python3 spec/schema_tests/run_schema_tests.py
+\end{term}
+
+The schema gate compiles every schema and proves it \emph{rejects} 12 hand-built invalid
+states while accepting 9 valid ones --- the JSON files enforce the rules, they do not merely
+describe them. The per-phase evidence ledger (\code{build\_evidence.jsonl}) is written
+locally by \code{spec/record\_phase.py} as each phase is built; like \code{runs.jsonl} it is
+git-ignored (local runtime state), so a fresh clone reproduces the proof by re-running the
+two commands above rather than trusting a checked-in file.
+
+\vspace{0.6em}
+{\color{rule}\rule{\textwidth}{1pt}}\\[0.3em]
+{\footnotesize\color{stone}Whetstone MVP vertical slice \textbullet\ practice
+\code{p\_structured\_output\_boundary} \textbullet\ manual built 2026-07-12. Companions:
+\emph{whetstone\_strongest\_version.pdf} (thesis) and \emph{whetstone\_implementation.pdf}
+(engine baseline).}
+
+\end{document}
