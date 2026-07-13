@@ -53,11 +53,20 @@ def learn(repo, n=14, top=3, frontier_refreshed=False):
         _run("breadcrumbs.py", repo, n, env=env)
         runs.stage(run, "breadcrumbs", "ok")
 
-        print("\n▶ 2/4  finding the gaps vs current best practice …")
-        _run("filter.py", repo.name, env=env)
+        print("\n▶ 2/4  finding proposals + validating them against current code …")
+        _run("filter.py", repo, env=env)
         runs.stage(run, "filter", "ok")
 
         import teach
+        findings = [
+            item for item in teach.teacher.read_jsonl(ROOT / "findings.jsonl")
+            if item.get("run_id") == run["run_id"]
+        ]
+        counts = {
+            status: sum(item.get("classification") == status for item in findings)
+            for status in ("confirmed", "partial", "already-handled", "insufficient-evidence")
+        }
+        runs.stage(run, "repository_validation", "ok", str(counts))
         uncertain = teach.mark_needs_verification(repo.name)
         if uncertain:
             print("\n? no longer detected; verify before calling these applied:")
@@ -73,7 +82,7 @@ def learn(repo, n=14, top=3, frontier_refreshed=False):
         runs.finish(run, "complete")
 
         if not gaps:
-            print("no evidence-backed gaps found in this run.")
+            print("no repository-confirmed gaps found in this run.")
         print(f"\n✓ 4/4  run {run['run_id'][:8]} complete. {len(gaps)} lesson(s) banked for '{repo.name}'.")
         print(f"  explore: python {ROOT / 'teacher.py'}   →  http://localhost:8099")
         return run

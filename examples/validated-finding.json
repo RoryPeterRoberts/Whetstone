@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "example_kind": "repository-validated-finding",
+  "proposal_id": "P1",
+  "pattern": "single-pass live gap judgment",
+  "current_move": "Use repeated independent judgments or a quorum for live gap classification, not only for offline calibration.",
+  "why": "A single nondeterministic live verdict can admit or suppress a teaching target even though the calibration harness already recognizes worst-of-N variance.",
+  "confidence": "high",
+  "risk": "quality",
+  "grounded": false,
+  "classification": "confirmed",
+  "validation_reason": "The production judge calls Codex once, while repetition is confined to the separate calibration harness.",
+  "evidence_rank": 1,
+  "evidence_chain": {
+    "history": {
+      "evidence": "The current filter and calibration harness were inspected directly for this example.",
+      "commit": ""
+    },
+    "frontier": {
+      "grounded": false,
+      "source_ids": [],
+      "sources": []
+    },
+    "repository": {
+      "classification": "confirmed",
+      "reason": "The production judge calls Codex once, while repetition is confined to the separate calibration harness.",
+      "state": {
+        "path": "Whetstone",
+        "head": "validated-example-worktree",
+        "dirty": false,
+        "status": []
+      },
+      "evidence": [
+        {
+          "path": "whetstone/filter.py",
+          "line_start": 148,
+          "line_end": 157,
+          "excerpt": "def judge(pats, frontier=None):\n    \"\"\"Run the REAL filter judgment on pattern dicts -> parsed items\n    ({pattern, gap, current_move, why, confidence, risk}). This is the judge the harness calibrates.\"\"\"\n    def fmt(p):\n        rec = f\" (recurs across {p['n_repos']} of your repos)\" if p.get(\"n_repos\", 1) > 1 else \"\"\n        return f\"- {p['pattern']}{rec} — {p.get('evidence', '')}\"\n    listing = \"\\n\".join(fmt(p) for p in pats)\n    if frontier is None:\n        frontier = load_frontier()\n    return parse_json(call_codex(PROMPT.format(patterns=listing, frontier=frontier)))",
+          "supports": "gap",
+          "file_sha256": "2e1d1162886ea87de383e13e7fe3fef528b4b8fcae1ea0097f767c818c766c9c",
+          "verified": true
+        },
+        {
+          "path": "whetstone/judge_eval.py",
+          "line_start": 53,
+          "line_end": 65,
+          "excerpt": "def run(n_runs=3):\n    golden = load_golden()\n    if not golden:\n        print(\"no golden cases — write golden.jsonl first\"); return 1\n\n    pats = [{\"pattern\": g[\"pattern\"], \"evidence\": g.get(\"evidence\", \"\"), \"n_repos\": 1} for g in golden]\n    n_runs = max(1, n_runs)\n    worst = None  # (rows, passed, must_fail) — most must-fails, then fewest passed\n    for _ in range(n_runs):\n        rows, passed, must_fail = _one_run(golden, pats)\n        if worst is None or must_fail > worst[2] or (must_fail == worst[2] and passed < worst[1]):\n            worst = (rows, passed, must_fail)\n    rows, passed, must_fail = worst",
+          "supports": "context",
+          "file_sha256": "b57e75ab7ae53d78b2a72d03dabadba3468f9abfd58f2f1e80270cf6af119ecb",
+          "verified": true
+        }
+      ],
+      "rejected_evidence": []
+    }
+  }
+}

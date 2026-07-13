@@ -20,21 +20,24 @@ Run Whetstone’s pre-build loop on the repo (writes into `WHETSTONE_HOME`):
 ```
 python3 "$WHETSTONE_HOME/whet.py" prepare <repo>
 ```
-It refreshes the curated frontier first, then reads the repo’s git history, infers the LLM-building patterns it uses, judges each against the live frontier, risk-ranks the gaps (money / data / production / quality), and writes them to `gaps.jsonl` with a copy-paste DIRECTION per gap.
+It refreshes the curated frontier first, reads the repo’s git history, infers the LLM-building patterns it uses, proposes gaps against the live frontier, then validates every proposal against the repo's current code. It writes the full classified audit to `findings.jsonl`; only `confirmed` and `partial` findings reach risk-ranked `gaps.jsonl` and receive a copy-paste DIRECTION.
 
 If Whetstone is not installed or Codex is unavailable, **fall back to a native find**: read the repo's recent `git log` and its key files yourself and identify the single sharpest, nameable gap vs current best practice. Say plainly that you used the native fallback (no independent finder — your review is on your own suggestion, so weigh it harder).
 
 ## 2. Present the top gap with provenance
-Read `$WHETSTONE_HOME/gaps.jsonl` (risk-then-confidence ordered). For the top gap, show the user plainly:
+Read `$WHETSTONE_HOME/findings.jsonl` for the complete audit and `$WHETSTONE_HOME/gaps.jsonl` for validated teaching targets. Findings are ordered by evidence quality before risk and confidence. For the top gap, show the user plainly:
 - the pattern (what the repo does now) and the git evidence it was found from,
 - the sharper current move + why it beats the current one,
+- its repository classification (`confirmed` or `partial`) and validation reason,
+- every verified current-code file/line citation,
+- whether its frontier evidence is grounded or unverified, with the real sources when grounded,
 - the risk tag,
 - **who found it** (Whetstone / Codex) — so it is clearly a proposal to check, not a fact.
 
-Offer at most the top 1–3. Let the user pick one, or take the top by default.
+Offer at most the top 1–3 validated targets. Never present `already-handled` or `insufficient-evidence` findings as changes to make; report them only when their audit context matters.
 
-## 3. THE GATE — review before touching anything
-Read the actual code the gap refers to. Then answer honestly, against specific files:
+## 3. THE GATE — independently review before touching anything
+Treat Whetstone's repository classification as evidence, not authority. Re-read the cited current code and search for counter-evidence. Then answer honestly, against specific files:
 - Is this a genuine, valuable enhancement for THIS repo as it stands?
 - Or is it already handled / not applicable here / risky / not worth the churn?
 

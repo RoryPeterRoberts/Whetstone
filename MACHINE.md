@@ -12,13 +12,14 @@ the build ships the app; the skim builds *you*. (Visual one-pager: `machine.html
 1. **Build** — real work, agent doing the labour (FixerUpper, StockAnalytics, a local-LLM task). ~20 hrs/wk. *The ore.*
 2. **Breadcrumb** — the doer self-tags its move as it works: `← constrained decoding here, to force the JSON`. Near-free; it already holds the context. → **what you do.** (You never watch the stream.)
    - **Watch** — watchers scan the curated `SOURCES.md` (RSS + page-diff via the web-change-detector). → **what's now possible.**
-3. **Filter (the heart)** — a cheap local pass on the 5090: where do the two streams **diverge *and* recur**? A move you make often, done a stale way, when a sharper current one exists. Discard the rest, unread. → **the recurring gap.**
-4. **Teach** — only survivors reach the expensive teacher. Gate (why — you hold the veto) → **derive** the principle (analogy, follow the logic, own it) → the **direction + the tell**. Command-altitude, never code.
-5. **Bank** — two ledgers compound, anchored to the real task that summoned them:
+3. **Filter (the heart)** — a model proposes where the two streams **diverge *and* recur**: a move you make often, done a stale way, when a sharper current one exists. → **a proposed recurring gap.**
+4. **Validate** — a separate read-only pass searches the target's current code and classifies every proposal as confirmed / partial / already-handled / insufficient-evidence. Code rejects citations that do not exactly match the working tree. → **a repository-audited finding.**
+5. **Teach** — only confirmed or partial survivors reach the expensive teacher. Gate (why — you hold the veto) → **derive** the principle (analogy, follow the logic, own it) → the **direction + the tell**. Command-altitude, never code.
+6. **Bank** — two ledgers compound, anchored to the real task that summoned them:
    - **Head** (the scaffold / atlas): the **principle** — derived, understood, sticky. *why = when.* Few, transferable.
    - **Repo** (the cheat sheet / command bank): the **command** — banked, reused, never in your head.
-6. **Proof** — each run records repo + commit + stage outcomes; only a complete run may teach. A gap disappearing becomes “needs verification,” never “applied,” until a diff or explicit review proves it.
-7. **Loop** — the next build starts from a higher floor. The atlas grows. This is the compounding.
+7. **Proof** — each run records repo + commit + stage outcomes; each finding exposes history → frontier → repository evidence and rejected citations. A gap disappearing becomes “needs verification,” never “applied,” until a diff or explicit review proves it.
+8. **Loop** — the next build starts from a higher floor. The atlas grows. This is the compounding.
 
 ## The filter — the selection function
 > **Teach the recurring gap between how you build and how the frontier now builds.**
